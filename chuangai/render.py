@@ -4,6 +4,8 @@ Two passes: partials first, then the template that includes them. In `.in`
 files, lowercase `$vars` are template placeholders and UPPERCASE `$VARS`
 belong to the shell -- `safe_substitute` leaves unknown placeholders alone,
 which is what lets `$LSB_JOBID` survive to runtime.
+
+NOTE: `mem` is PER SLOT on Minerva (total = mem * ncpus).
 """
 
 from __future__ import annotations
@@ -30,17 +32,14 @@ def render(p, out_path: pathlib.Path) -> pathlib.Path:
 
     if p.template == "index":
         ncpus = h["cores"]
-    elif p.template == "train":
-        ncpus = nodes * 8
-    else:
-        ncpus = 2
-
-    if p.template == "index":
         image = h["images"]["cpu"]
-    elif p.gpu == "b200":
-        image = h["images"]["blackwell"]
     else:
-        image = h["images"]["ada_hopper"]
+        ncpus = nodes * 8 if p.template == "train" else 2
+        image = h["images"]["blackwell" if p.gpu == "b200" else "ada_hopper"]
+
+    # node-local SSD staging is opt-in; only then is ssd_gb requested
+    stage_ssd = bool(h.get("stage_ssd")) and p.template in ("serve", "train")
+    ssd_res = f",ssd_gb={m['weights_gb'] + 60}" if stage_ssd else ""
 
     mapping = dict(
         job=job_name(m["served"], p.gpu, p.gpus),
@@ -53,17 +52,19 @@ def render(p, out_path: pathlib.Path) -> pathlib.Path:
         tp=p.gpus,
         walltime=h["walltime"],
         mem=h["mem"],
+        ssd_res=ssd_res,
+        stage_ssd=int(stage_ssd),
         log_dir=h["log_dir"],
         state_dir=h["state_dir"],
         hf_home=h["hf_home"],
         keyfile=h["keyfile"],
         sif=image,
-        ssd_gb=m["weights_gb"] + 60,
         model_repo=m["hf"],
         model_slug=m["slug"],
         served=m["served"],
         max_len=m["ctx"],
         parser=m["parser"],
+        extra=m.get("vllm_extra", ""),
     )
 
     for name in ("stage", "health"):  # blank when not included

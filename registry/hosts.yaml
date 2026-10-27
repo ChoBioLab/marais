@@ -21,8 +21,9 @@ hosts:
     log_dir: /sc/arion/projects/untreatedIBD/chuangai/logs
     state_dir: /sc/arion/projects/untreatedIBD/chuangai/servers
     cores: 8
-    mem: "120GB"
+    mem: "16GB"                    # PER SLOT (LSF multiplies by -n)
     walltime: "12:00"
+    stage_ssd: false               # true = rsync weights to /ssd first
     gpu_res:                       # confirmed against SCD docs
       h100nvl: h100nvl
       h10080g: h10080g

@@ -4,8 +4,7 @@
 #BSUB -q $queue
 #BSUB -n $ncpus
 #BSUB -R "span[ptile=8]"
-#BSUB -R "rusage[mem=$mem]"
-#BSUB -R "rusage[ssd_gb=$ssd_gb]"
+#BSUB -R "rusage[mem=$mem$ssd_res]"
 #BSUB -R "$gpu_res"
 #BSUB -gpu "num=$ngpus"
 #BSUB -W 24:00
@@ -14,6 +13,7 @@
 #BSUB -L /bin/bash
 #
 # NOTE: span[ptile=8] not span[hosts=1] -- these GPUs are meant to span nodes.
+# NOTE: mem is per slot; total = mem * ncpus.
 
 ulimit -n 65536
 mkdir -p "$log_dir"
@@ -23,13 +23,15 @@ echo "nodes=$nodes gpus=$ngpus cores=$ncpus"
 ml apptainer
 ml proxies
 
+trap 'rm -rf "/ssd/chuangai_${LSB_JOBID}"' EXIT
+
 $STAGE
 
 OUT=/sc/arion/projects/$project/runs/${LSB_JOBID}
 mkdir -p "$OUT"
 
 apptainer run --nv -B /sc/arion \
-  --env HF_HOME=$hf_home --env HF_HUB_OFFLINE=1 \
+  --env HF_HOME=$hf_home --env HF_HUB_OFFLINE=1 --env TRANSFORMERS_OFFLINE=1 \
   $sif \
   torchrun --nnodes=$nodes --nproc-per-node=4 \
            --rdzv-backend=c10d --rdzv-endpoint=$(hostname):29500 \

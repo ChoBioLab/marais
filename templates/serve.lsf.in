@@ -4,8 +4,7 @@
 #BSUB -q $queue
 #BSUB -n $ncpus
 #BSUB -R "span[hosts=1]"
-#BSUB -R "rusage[mem=$mem]"
-#BSUB -R "rusage[ssd_gb=$ssd_gb]"
+#BSUB -R "rusage[mem=$mem$ssd_res]"
 #BSUB -R "$gpu_res"
 #BSUB -gpu "num=$ngpus"
 #BSUB -W $walltime
@@ -24,12 +23,12 @@ nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 ml apptainer
 ml proxies
 
-trap 'rm -f "$state_dir/${LSB_JOBID}.json"' EXIT
+trap 'rm -f "$state_dir/${LSB_JOBID}.json"; rm -rf "/ssd/chuangai_${LSB_JOBID}"' EXIT
 
 $STAGE
 
 apptainer run --nv -B /sc/arion \
-  --env HF_HOME=$hf_home --env HF_HUB_OFFLINE=1 \
+  --env HF_HOME=$hf_home --env HF_HUB_OFFLINE=1 --env TRANSFORMERS_OFFLINE=1 \
   --env VLLM_LOGGING_LEVEL=INFO \
   $sif "$MODEL_PATH" \
   --served-model-name $served \
@@ -39,7 +38,7 @@ apptainer run --nv -B /sc/arion \
   --tensor-parallel-size $tp \
   --kv-cache-dtype fp8 \
   --enable-auto-tool-choice --tool-call-parser $parser \
-  --enable-prefix-caching --enable-chunked-prefill &
+  --enable-prefix-caching --enable-chunked-prefill $extra &
 
 VLLM_PID=$!
 $HEALTH
