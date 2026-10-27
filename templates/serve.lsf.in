@@ -1,0 +1,47 @@
+#!/bin/bash
+#BSUB -J $job
+#BSUB -P $project
+#BSUB -q $queue
+#BSUB -n $ncpus
+#BSUB -R "span[hosts=1]"
+#BSUB -R "rusage[mem=$mem]"
+#BSUB -R "rusage[ssd_gb=$ssd_gb]"
+#BSUB -R "$gpu_res"
+#BSUB -gpu "num=$ngpus"
+#BSUB -W $walltime
+#BSUB -o $log_dir/%J.stdout
+#BSUB -eo $log_dir/%J.stderr
+#BSUB -L /bin/bash
+
+umask 002
+ulimit -n 65536
+mkdir -p "$log_dir" "$state_dir"
+chmod 2775 "$state_dir" 2>/dev/null || true
+
+echo "=== ${LSB_JOBID} $(hostname) $(date -Is) ==="
+nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+
+ml apptainer
+ml proxies
+
+trap 'rm -f "$state_dir/${LSB_JOBID}.json"' EXIT
+
+$STAGE
+
+apptainer run --nv -B /sc/arion \
+  --env HF_HOME=$hf_home --env HF_HUB_OFFLINE=1 \
+  --env VLLM_LOGGING_LEVEL=INFO \
+  $sif "$MODEL_PATH" \
+  --served-model-name $served \
+  --host 127.0.0.1 --port 8000 \
+  --api-key "$(cat $keyfile)" \
+  --max-model-len $max_len \
+  --tensor-parallel-size $tp \
+  --kv-cache-dtype fp8 \
+  --enable-auto-tool-choice --tool-call-parser $parser \
+  --enable-prefix-caching --enable-chunked-prefill &
+
+VLLM_PID=$!
+$HEALTH
+wait $VLLM_PID
+

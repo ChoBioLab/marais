@@ -1,0 +1,45 @@
+#!/bin/bash
+#BSUB -J $job
+#BSUB -P $project
+#BSUB -q $queue
+#BSUB -n $ncpus
+#BSUB -R "span[hosts=1]"
+#BSUB -R "rusage[mem=$mem]"
+#BSUB -W $walltime
+#BSUB -o $log_dir/%J.stdout
+#BSUB -eo $log_dir/%J.stderr
+#BSUB -L /bin/bash
+#
+# CPU-ONLY BY DESIGN. No -gpu line and no -R gpu token.
+# Chunking, dedup and index build are I/O- and CPU-bound; an H100 here would
+# queue for a day and finish no faster.
+
+umask 002
+ulimit -n 65536
+mkdir -p "$log_dir"
+echo "=== ${LSB_JOBID} $(hostname) $(date -Is) ==="
+echo "cores=${LSB_DJOB_NUMPROC}"
+
+ml apptainer
+ml proxies
+
+OUT=/sc/arion/projects/$project/rag/${LSB_JOBID}
+mkdir -p "$OUT"
+
+apptainer run -B /sc/arion \
+  --env HF_HOME=$hf_home --env HF_HUB_OFFLINE=1 \
+  --env OMP_NUM_THREADS=${LSB_DJOB_NUMPROC} \
+  --env TOKENIZERS_PARALLELISM=false \
+  $sif \
+  /opt/rag/build_index.py \
+  --corpus  /sc/arion/projects/$project/corpus \
+  --out     "$OUT" \
+  --embed   $model_repo \
+  --chunk   512 --overlap 64 \
+  --workers ${LSB_DJOB_NUMPROC}
+
+rc=$?
+echo "exit=$rc out=$OUT"
+[ $rc -eq 0 ] && echo "INDEX_READY $OUT" || echo "INDEX_FAILED $OUT"
+exit $rc
+

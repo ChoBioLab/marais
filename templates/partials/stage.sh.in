@@ -1,0 +1,13 @@
+# resolve the snapshot on the compute node (never on the login node), then
+# stage to node-local NVMe so startup does not read 80 GB over the network
+SNAP=$(ls -1dt "$hf_home"/hub/models--$model_slug/snapshots/* 2>/dev/null | head -1)
+if [ ! -d "$SNAP" ]; then
+  echo "FATAL: $model_repo not found under $hf_home" >&2
+  echo "  looked for: $hf_home/hub/models--$model_slug/snapshots/*" >&2
+  exit 1
+fi
+echo "source: $SNAP"
+mkdir -p /ssd/models
+rsync -a --info=progress2 "$SNAP"/ /ssd/models/
+export MODEL_PATH=/ssd/models
+

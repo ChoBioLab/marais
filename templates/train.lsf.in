@@ -1,0 +1,42 @@
+#!/bin/bash
+#BSUB -J $job
+#BSUB -P $project
+#BSUB -q $queue
+#BSUB -n $ncpus
+#BSUB -R "span[ptile=8]"
+#BSUB -R "rusage[mem=$mem]"
+#BSUB -R "rusage[ssd_gb=$ssd_gb]"
+#BSUB -R "$gpu_res"
+#BSUB -gpu "num=$ngpus"
+#BSUB -W 24:00
+#BSUB -o $log_dir/%J.stdout
+#BSUB -eo $log_dir/%J.stderr
+#BSUB -L /bin/bash
+#
+# NOTE: span[ptile=8] not span[hosts=1] -- these GPUs are meant to span nodes.
+
+ulimit -n 65536
+mkdir -p "$log_dir"
+echo "=== ${LSB_JOBID} $(hostname) $(date -Is) ==="
+echo "nodes=$nodes gpus=$ngpus cores=$ncpus"
+
+ml apptainer
+ml proxies
+
+$STAGE
+
+OUT=/sc/arion/projects/$project/runs/${LSB_JOBID}
+mkdir -p "$OUT"
+
+apptainer run --nv -B /sc/arion \
+  --env HF_HOME=$hf_home --env HF_HUB_OFFLINE=1 \
+  $sif \
+  torchrun --nnodes=$nodes --nproc-per-node=4 \
+           --rdzv-backend=c10d --rdzv-endpoint=$(hostname):29500 \
+           /opt/train/sft.py \
+           --model "$MODEL_PATH" --output "$OUT"
+
+rc=$?
+echo "exit=$rc out=$OUT"
+exit $rc
+

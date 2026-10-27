@@ -1,0 +1,15 @@
+# wait for vLLM, then publish a group-readable record other lab members can see
+for _ in $(seq 1 240); do
+  if curl -sf -m 2 "http://127.0.0.1:8000/v1/models" \
+       -H "Authorization: Bearer $(cat $keyfile)" >/dev/null; then
+    cat > "$state_dir/${LSB_JOBID}.json" <<JSON
+{"jobid":"${LSB_JOBID}","model":"$served","gpu":"$gpu_res","gpus":$ngpus,
+ "host":"$(hostname)","port":8000,"user":"${USER}","since":"$(date -Is)"}
+JSON
+    echo "READY -> $state_dir/${LSB_JOBID}.json"
+    break
+  fi
+  kill -0 $VLLM_PID 2>/dev/null || { echo "FATAL: vLLM exited" >&2; exit 1; }
+  sleep 10
+done
+
