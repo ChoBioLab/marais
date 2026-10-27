@@ -1,0 +1,94 @@
+tasks:
+
+  # 1
+  - id: ask
+    label: "Ask a question"
+    kind: web
+    url: "https://chat.example.internal"
+    wait: "instant"
+    phi_ok: true
+
+  # 2
+  - id: script
+    label: "Script a small task"
+    kind: job
+    lane: minimus
+    model: qwen27-fp8
+    gpus: 1
+    wait: "instant"
+    phi_ok: false
+
+  # 3
+  - id: engineer
+    label: "Code / edit files"
+    kind: job
+    lane: burst
+    model: qwen27-fp8
+    gpu_pref: [l40s, h100nvl, a10080g]
+    gpus: 1
+    wait: "minutes"
+    phi_ok: false               # burst is not phi_safe; PHI goes through `help`
+
+  # 4
+  - id: reason
+    label: "Think hard about one thing"
+    kind: job
+    lane: burst
+    model: qwen27-bf16
+    gpu_pref: [h100nvl, a10080g, h10080g]
+    gpus: 2
+    wait: "minutes-hours"
+    phi_ok: false
+
+  # 5
+  - id: batch
+    label: "Run over many rows"
+    kind: job
+    lane: burst
+    model: qwen27-fp8
+    gpu_pref: [l40s, h100nvl, a10080g]
+    gpus: 2
+    wait: "hours"
+    phi_ok: false
+
+  # 6a
+  - id: finetune
+    label: "Teach it our own data"
+    kind: job
+    lane: burst
+    recipe: train
+    model: qwen27-bf16
+    gpu_pref: [h100nvl, a10080g]
+    gpus: 4
+    wait: "hours-days"
+    phi_ok: false
+
+  # 6b
+  - id: index
+    label: "Make our PDFs searchable"
+    kind: job
+    lane: burst
+    recipe: index
+    model: embed-bge
+    gpus: 0
+    wait: "minutes-hours"
+    phi_ok: false
+
+  # 7
+  - id: frontier
+    label: "Something genuinely hard"
+    kind: job
+    lane: burst
+    model: flashnext-fp8
+    gpu_pref: [b200, h100nvl, a10080g]
+    gpus: 2
+    wait: "hours-days"
+    phi_ok: false
+
+  # 8
+  - id: help
+    label: "It broke / I don't know"
+    kind: human
+    who: Chris
+    wait: "a day"
+    phi_ok: true

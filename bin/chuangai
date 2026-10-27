@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# thin exec shim -- keeps the real code importable as a package
+set -euo pipefail
+HERE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+export PYTHONPATH="$HERE${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 -m chuangai.cli "$@"
+

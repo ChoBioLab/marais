@@ -1,0 +1,36 @@
+hosts:
+
+  minimus:
+    scheduler: none
+    login: "(direct)"
+    base_url: "http://minimus:8000/v1"
+    keyfile: "~/.vllm_key"
+    in_minerva_boundary: false
+    phi_safe: false
+
+  burst:
+    scheduler: lsf
+    project: acc_untreatedIBD
+    queues: [gpu, gpuexpress]      # 'private' is not ours
+    login: minerva
+    base_url: "http://localhost:8000/v1"   # reached through an ssh tunnel
+    keyfile: "~/.vllm_key"
+    in_minerva_boundary: true
+    phi_safe: false
+    hf_home: /sc/arion/projects/untreatedIBD/cache/huggingface
+    log_dir: /sc/arion/projects/untreatedIBD/chuangai/logs
+    state_dir: /sc/arion/projects/untreatedIBD/chuangai/servers
+    cores: 8
+    mem: "120GB"
+    walltime: "12:00"
+    gpu_res:                       # confirmed against SCD docs
+      h100nvl: h100nvl
+      h10080g: h10080g
+      a100: a100
+      a10080g: a10080g
+      l40s: l40s
+      b200: b200
+    images:
+      ada_hopper: /sc/arion/projects/untreatedIBD/cache/images/apptainer/vllm-openai-v0.31.0-cu130.sif
+      blackwell:  /sc/arion/projects/untreatedIBD/cache/images/apptainer/vllm-openai-<confirm>.sif
+      cpu:        /sc/arion/projects/untreatedIBD/cache/images/apptainer/rag-cpu-<confirm>.sif
