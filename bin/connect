@@ -1,0 +1,167 @@
+#!/usr/bin/env python3
+"""connect: attach to a running Minerva LLM server, open the tunnel, launch opencode.
+Jobs are submitted/stopped on Minerva (./bin/chuangai <mode>, bkill). Every remote call goes over ssh.
+"""
+import argparse
+import os
+import shutil
+import socket
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
+
+HOST = "minerva"  # ssh alias in ~/.ssh/config
+KEYFILE = "~/.vllm_key"  # API key path on Minerva
+JOBGLOB = "chuangai_{served}_*"  # LSF job-name pattern
+MODELS = {"qwen27": 8000}  # served name -> local port (must match opencode.json)
+
+# Port formula must match serve.lsf.in
+PROBE = r"""
+S=@S@
+P=$(printf '%s' "$(id -un):$S" | cksum | awk '{print 20000 + $1 % 12000}')
+read -r st host < <(bjobs -noheader -J "@GLOB@" -o 'stat:10 exec_host:80' 2>/dev/null | sort -r | head -1)
+echo "$P ${st:-NONE} ${host:--} $(id -un)"
+"""
+
+
+def remote(script):
+    r = subprocess.run(
+        ["ssh", HOST, "bash", "-l", "-s"], input=script, text=True, capture_output=True
+    )
+    if r.returncode:
+        sys.exit(
+            r.stderr.strip() or "Cannot reach Minerva. Run 'ssh -Nf minerva' first."
+        )
+    lines = r.stdout.strip().splitlines()
+    return lines[-1] if lines else ""
+
+
+def probe(served):
+    out = remote(
+        PROBE.replace("@S@", served).replace("@GLOB@", JOBGLOB.format(served=served))
+    ).split()
+    if len(out) != 4:
+        sys.exit(f"Unexpected probe output: {out!r}")
+    port, st, host, user = out
+    return int(port), st, host.split(":")[0].split("*")[-1], user
+
+
+def port_open(p):
+    with socket.socket() as s:
+        s.settimeout(0.3)
+        return s.connect_ex(("127.0.0.1", p)) == 0
+
+
+def healthy(lport):
+    try:
+        return (
+            urllib.request.urlopen(f"http://127.0.0.1:{lport}/health", timeout=3).status
+            == 200
+        )
+    except urllib.error.HTTPError as e:
+        return e.code < 500
+    except Exception:
+        return False
+
+
+def say(t0, msg):
+    print(f"[{int(time.time() - t0):>4}s] {msg}", flush=True)
+
+
+def main():
+    ap = argparse.ArgumentParser(prog="chuangai-tunnel")
+    ap.add_argument(
+        "model", nargs="?", default="qwen27", choices=MODELS, help="served model name"
+    )
+    ap.add_argument(
+        "--tunnel-only",
+        action="store_true",
+        help="keep the tunnel open; don't launch opencode",
+    )
+    a = ap.parse_args()
+    lport, t0, last = MODELS[a.model], time.time(), None
+
+    # 1. Wait for the user's job to be RUNNING (never submits)
+    while True:
+        rport, st, node, user = probe(a.model)
+        if st == "RUN":
+            break
+        if st == "NONE":
+            sys.exit(
+                f"No '{a.model}' job found. On Minerva, start one first:  ./bin/chuangai <mode>"
+            )
+        if st != last:
+            say(t0, "queued, waiting for a GPU" if st == "PEND" else f"job state: {st}")
+        last = st
+        time.sleep(10)
+
+    # 2. API key (read server-side)
+    key = remote(f'printf "%s\\n" "$(cat {KEYFILE} 2>/dev/null)"').strip()
+    if not key:
+        sys.exit(f"No API key in {KEYFILE} on Minerva.")
+
+    # 3. Tunnel: client:lport -> (jump via login node) -> compute node loopback:rport
+    if port_open(lport):
+        sys.exit(
+            f"Local port {lport} busy (old tunnel?). Run: pkill -f 'ssh .*-L {lport}:'"
+        )
+    tun = subprocess.Popen(
+        [
+            "ssh",
+            "-N",
+            "-o",
+            "ExitOnForwardFailure=yes",
+            "-o",
+            "ServerAliveInterval=30",
+            "-o",
+            "StrictHostKeyChecking=accept-new",
+            "-o",
+            "LogLevel=QUIET",
+            "-L",
+            f"{lport}:127.0.0.1:{rport}",
+            "-J",
+            HOST,
+            f"{user}@{node}",
+        ],
+        stdin=subprocess.DEVNULL,
+    )
+
+    try:
+        # 4. Wait for vLLM to finish loading
+        say(t0, f"waiting for model on {node}")
+        n = 0
+        while not healthy(lport):
+            if tun.poll() is not None:
+                sys.exit("Tunnel failed. Check: ssh -J minerva <user>@<node> hostname")
+            n += 1
+            if n % 6 == 0 and probe(a.model)[1] != "RUN":
+                sys.exit(
+                    "Server job ended during startup. Check its .stderr on Minerva."
+                )
+            time.sleep(5)
+        say(t0, f"ready: http://127.0.0.1:{lport}/v1")
+
+        # 5. Launch opencode (or just hold the tunnel)
+        if a.tunnel_only:
+            print("Tunnel open. Ctrl-C to disconnect.")
+            tun.wait()
+        elif not shutil.which("opencode"):
+            sys.exit("opencode not found on PATH.")
+        else:
+            subprocess.call(
+                ["opencode", "--standalone"],
+                env={**os.environ, "MINERVA_VLLM_KEY": key},
+            )
+    except KeyboardInterrupt:
+        pass
+    finally:
+        tun.terminate()
+        print(
+            "Disconnected. The server job is still running; release it on Minerva with: bkill <jobid>"
+        )
+
+
+if __name__ == "__main__":
+    main()
