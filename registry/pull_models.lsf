@@ -1,0 +1,68 @@
+#!/bin/bash
+#BSUB -J pull_models
+#BSUB -P acc_untreatedIBD
+#BSUB -q express
+#BSUB -n 2
+#BSUB -R "span[hosts=1]"
+#BSUB -R "rusage[mem=4GB]"
+#BSUB -W 12:00
+#BSUB -o /sc/arion/projects/untreatedIBD/chuangai/logs/pull_%J.stdout
+#BSUB -eo /sc/arion/projects/untreatedIBD/chuangai/logs/pull_%J.stderr
+#BSUB -L /bin/bash
+#
+# usage:  bsub < pull_models.lsf                                   # all repos in models.yaml
+#         REPOS="Qwen/Foo org/Bar" bsub < pull_models.lsf          # specific repos
+#         MODELS_YAML=/path/models.yaml bsub < pull_models.lsf     # other registry file
+
+umask 002
+ml proxies                                      # outbound internet on Minerva
+
+set -uo pipefail
+export HF_HOME=/sc/arion/projects/untreatedIBD/cache/huggingface
+export HF_HUB_DISABLE_PROGRESS_BARS=1           # keep the log file readable
+unset HF_HUB_OFFLINE TRANSFORMERS_OFFLINE       # offline mode would block the download
+MODELS_YAML="${MODELS_YAML:-/home/cw/projects/cholab/chuangai/registry/models.yaml}"
+
+echo "=== ${LSB_JOBID} $(hostname) $(date -Is) ==="
+
+command -v hf >/dev/null || pip install -U "huggingface_hub[hf_xet]"
+
+if [ -n "${REPOS:-}" ]; then
+  read -ra REPO_LIST <<< "$REPOS"
+else
+  # collect every `hf:` value, however models.yaml is nested
+  mapfile -t REPO_LIST < <(python - "$MODELS_YAML" <<'PY'
+import sys, yaml
+def walk(o):
+    if isinstance(o, dict):
+        if isinstance(o.get("hf"), str): yield o["hf"]
+        for v in o.values(): yield from walk(v)
+    elif isinstance(o, list):
+        for v in o: yield from walk(v)
+seen = set()
+for r in walk(yaml.safe_load(open(sys.argv[1]))):
+    if r not in seen:
+        seen.add(r); print(r)
+PY
+)
+fi
+
+[ ${#REPO_LIST[@]} -gt 0 ] || { echo "FATAL: no repos found (yaml: $MODELS_YAML)" >&2; exit 1; }
+printf 'Repos (%d):\n' "${#REPO_LIST[@]}"; printf '  %s\n' "${REPO_LIST[@]}"
+
+FAILED=()
+for r in "${REPO_LIST[@]}"; do
+  echo "=== $r $(date -Is) ==="
+  hf download "$r" || FAILED+=("$r")             # resumable; skips files already cached
+done
+
+chmod -R g+rwX "$HF_HOME/hub" 2>/dev/null || true
+hf cache ls
+
+if [ ${#FAILED[@]} -gt 0 ]; then
+  echo "FAILED: ${FAILED[*]}" >&2
+  echo "(404 = wrong repo ID; 401/403 = gated, run 'hf auth login' first)" >&2
+  exit 1
+fi
+echo "=== done $(date -Is) ==="
+
