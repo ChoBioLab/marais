@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""chuangai-code: start/attach to a Minerva LLM server, tunnel, launch opencode."""
+import argparse, os, shutil, socket, subprocess, sys, time, urllib.request, urllib.error
+
+HOST = "minerva"
+REPO = "/sc/arion/projects/untreatedIBD/chuangai"
+MODELS = {"qwen27": (8000, "engineer")}        # served -> (local port, chuangai row); match opencode.json
+
+PROBE = r'''
+S=@S@
+P=$(%s/bin/chuangai-port $S)
+read -r st host < <(bjobs -noheader -J "chuangai_${S}_*" -o 'stat exec_host delimiter=" "' 2>/dev/null | head -1)
+echo "$P ${st:-NONE} ${host:--} $(cat ~/.vllm_key)"
+''' % REPO
+
+def remote(script):
+    r = subprocess.run(["ssh", HOST, "bash", "-s"], input=script, text=True, capture_output=True)
+    if r.returncode:
+        sys.exit(r.stderr.strip() or "Cannot reach Minerva. Check VPN / run 'ssh minerva' once.")
+    return r.stdout.strip().splitlines()[-1]
+
+def probe(served):
+    port, st, host, key = remote(PROBE.replace("@S@", served)).split(maxsplit=3)
+    host = host.split(":")[0].split("*")[-1]       # "2*lg02e10:lg02e11" -> "lg02e10"
+    return int(port), st, host, key
+
+def port_open(p):
+    with socket.socket() as s:
+        s.settimeout(0.3)
+        return s.connect_ex(("127.0.0.1", p)) == 0
+
+def healthy(lport):
+    try:
+        return urllib.request.urlopen(f"http://127.0.0.1:{lport}/health", timeout=3).status == 200
+    except urllib.error.HTTPError as e:
+        return e.code < 500
+    except Exception:
+        return False
+
+def say(t0, msg):
+    print(f"[{int(time.time() - t0):>4}s] {msg}", flush=True)
+
+def main():
+    ap = argparse.ArgumentParser(prog="chuangai-code")
+    ap.add_argument("model", nargs="?", default="qwen27", choices=MODELS)
+    ap.add_argument("--stop", action="store_true", help="release the GPU")
+    ap.add_argument("--tunnel-only", action="store_true")
+    a = ap.parse_args()
+    lport, row = MODELS[a.model]
+
+    if a.stop:
+        remote(f'bkill -J "chuangai_{a.model}_*" >/dev/null 2>&1; echo')
+        return print("Server stopped.")
+
+    t0, submitted, last = time.time(), False, None
+    while True:                                    # wait for the job to be RUNNING
+        rport, st, node, key = probe(a.model)
+        if st == "RUN":
+            break
+        if st == "NONE":
+            if submitted and time.time() - t0 > 60:
+                sys.exit(f"Job vanished after submit. See {REPO}/logs")
+            if not submitted:
+                say(t0, "submitting job")
+                remote(f"cd {REPO} && ./bin/chuangai {row} >/dev/null; echo")
+                submitted = True
+        elif st != last:
+            say(t0, "queued, waiting for a GPU" if st == "PEND" else st)
+        last = st
+        time.sleep(10)
+
+    if port_open(lport):
+        sys.exit(f"Local port {lport} busy (old tunnel?). Close it and retry.")
+    tun = subprocess.Popen(["ssh", "-N", "-o", "ExitOnForwardFailure=yes", "-o", "ServerAliveInterval=30",
+                            "-L", f"{lport}:127.0.0.1:{rport}", "-J", HOST, f"{HOST}-node-user@{node}"
+                            if False else f"{node}"], stdin=subprocess.DEVNULL)
+    try:
+        say(t0, f"loading model on {node} (about 5-10 min)")
+        n = 0
+        while not healthy(lport):
+            if tun.poll() is not None:
+                sys.exit("Tunnel failed. Is ssh to compute nodes allowed? See the fallback note.")
+            n += 1
+            if n % 6 == 0 and probe(a.model)[1] != "RUN":
+                sys.exit(f"Server job ended during startup. See {REPO}/logs")
+            time.sleep(5)
+        say(t0, f"ready: http://127.0.0.1:{lport}/v1")
+        if a.tunnel_only:
+            print(f"API key: {key}\nCtrl-C to disconnect."); tun.wait()
+        elif not shutil.which("opencode"):
+            sys.exit("opencode not found on PATH.")
+        else:
+            subprocess.call(["opencode", "-m", f"minerva-{a.model}/{a.model}"],
+                            env={**os.environ, "MINERVA_VLLM_KEY": key})
+    except KeyboardInterrupt:
+        pass
+    finally:
+        tun.terminate()
+        print(f"Disconnected. Server stays up; 'chuangai-code {a.model} --stop' releases the GPU.")
+
+if __name__ == "__main__":
+    main()
+

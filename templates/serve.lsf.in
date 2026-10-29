@@ -27,11 +27,10 @@ trap 'rm -f "$state_dir/${LSB_JOBID}.json"; rm -rf "/ssd/chuangai_${LSB_JOBID}"'
 
 $STAGE
 
-# nodes are shared: pick a free loopback port instead of assuming 8000
-PORT=$((20000 + RANDOM % 20000))
-while (exec 3<>/dev/tcp/127.0.0.1/$PORT) 2>/dev/null; do
-  PORT=$((20000 + RANDOM % 20000))
-done
+# deterministic per-user/per-model port; the client computes the same value with bin/chuangai-port
+PORT=$(/sc/arion/projects/untreatedIBD/chuangai/bin/chuangai-port "$served") \
+  || { echo "FATAL: chuangai-port failed"; exit 1; }
+if ss -ltn | grep -q ":$PORT "; then echo "FATAL: port $PORT busy on $(hostname -s)"; exit 1; fi
 echo "port: $PORT"
 
 apptainer run --nv -B /sc/arion \
