@@ -9,7 +9,8 @@ models:
     parser: hermes
     ctx: 65536
     min_gpus: 1
-    gpus_ok: [l40s, a10080g, h100nvl, h10080g, b200]
+    gpus_ok: [a10080g, h100nvl, h10080g, b200]
+    vllm_extra: "--max-num-seqs 256"     # hybrid Mamba cache: default 1024 > blocks available
 
   - id: qwen27-bf16
     hf: Qwen/Qwen3.8-27B
@@ -21,6 +22,7 @@ models:
     ctx: 65536
     min_gpus: 2
     gpus_ok: [a10080g, h100nvl, h10080g, b200]
+    vllm_extra: "--max-num-seqs 256"
 
   - id: flashnext-fp8
     hf: Qwen/Qwen3.8-FlashNext-125B-FP8
@@ -32,6 +34,7 @@ models:
     ctx: 131072
     min_gpus: 2
     gpus_ok: [h100nvl, a10080g, b200]     # 125 GB will not fit an L40S row
+    vllm_extra: "--max-num-seqs 256"      # precaution; remove if this model is not hybrid
 
   - id: embed-bge
     hf: BAAI/bge-m3
@@ -43,3 +46,4 @@ models:
     ctx: 8192
     min_gpus: 0
     gpus_ok: [cpu]
+
