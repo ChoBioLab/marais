@@ -27,12 +27,19 @@ trap 'rm -f "$state_dir/${LSB_JOBID}.json"; rm -rf "/ssd/chuangai_${LSB_JOBID}"'
 
 $STAGE
 
+# nodes are shared: pick a free loopback port instead of assuming 8000
+PORT=$((20000 + RANDOM % 20000))
+while (exec 3<>/dev/tcp/127.0.0.1/$PORT) 2>/dev/null; do
+  PORT=$((20000 + RANDOM % 20000))
+done
+echo "port: $PORT"
+
 apptainer run --nv -B /sc/arion \
   --env HF_HOME=$hf_home --env HF_HUB_OFFLINE=1 --env TRANSFORMERS_OFFLINE=1 \
   --env VLLM_LOGGING_LEVEL=INFO \
   $sif "$MODEL_PATH" \
   --served-model-name $served \
-  --host 127.0.0.1 --port 8000 \
+  --host 127.0.0.1 --port $PORT \
   --api-key "$(cat $keyfile)" \
   --max-model-len $max_len \
   --tensor-parallel-size $tp \
@@ -43,4 +50,3 @@ apptainer run --nv -B /sc/arion \
 VLLM_PID=$!
 $HEALTH
 wait $VLLM_PID
-

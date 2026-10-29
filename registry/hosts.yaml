@@ -12,6 +12,7 @@ hosts:
     scheduler: lsf
     project: acc_untreatedIBD
     queues: [gpu, gpuexpress]      # 'private' is not ours
+    cpu_queue: express             # CPU-only rows (index); same queue pull_models.lsf uses
     login: minerva
     base_url: "http://localhost:8000/v1"   # reached through an ssh tunnel
     keyfile: "~/.vllm_key"

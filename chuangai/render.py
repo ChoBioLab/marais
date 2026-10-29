@@ -3,7 +3,7 @@
 Two passes: partials first, then the template that includes them. In `.in`
 files, lowercase `$vars` are template placeholders and UPPERCASE `$VARS`
 belong to the shell -- `safe_substitute` leaves unknown placeholders alone,
-which is what lets `$LSB_JOBID` survive to runtime.
+which is what lets `$LSB_JOBID` and `$PORT` survive to runtime.
 
 NOTE: `mem` is PER SLOT on Minerva (total = mem * ncpus).
 """
@@ -33,9 +33,17 @@ def render(p, out_path: pathlib.Path) -> pathlib.Path:
     if p.template == "index":
         ncpus = h["cores"]
         image = h["images"]["cpu"]
+        queue = h.get("cpu_queue", "express")  # never the GPU queue
     else:
         ncpus = nodes * 8 if p.template == "train" else 2
         image = h["images"]["blackwell" if p.gpu == "b200" else "ada_hopper"]
+        queue = h["queues"][0]
+
+    if "<" in image:  # '<confirm>' would be parsed by bash as a redirect
+        raise SystemExit(
+            f"image path is still a placeholder: {image}\n"
+            "Set it in registry/hosts.yaml before using this row."
+        )
 
     # node-local SSD staging is opt-in; only then is ssd_gb requested
     stage_ssd = bool(h.get("stage_ssd")) and p.template in ("serve", "train")
@@ -44,7 +52,7 @@ def render(p, out_path: pathlib.Path) -> pathlib.Path:
     mapping = dict(
         job=job_name(m["served"], p.gpu, p.gpus),
         project=h["project"],
-        queue=h["queues"][0],
+        queue=queue,
         gpu_res=h["gpu_res"].get(p.gpu, "") if p.gpu else "",
         ngpus=p.gpus,
         nodes=nodes,
