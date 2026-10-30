@@ -118,6 +118,8 @@ def validate() -> list[str]:
             problems.append(f"models: duplicate served name '{s}' ({seen[s]}, {mid})")
         else:
             seen[s] = mid
+        if "reasoning" in m and not m["reasoning"]:
+            problems.append(f"models: {mid} sets reasoning but it is empty")
 
     for r in _tasks():
         if r.get("kind") in ("web", "human"):

@@ -73,6 +73,7 @@ def render(p, out_path: pathlib.Path) -> pathlib.Path:
         max_len=m["ctx"],
         parser=m["parser"],
         extra=m.get("vllm_extra", ""),
+        reasoning=m.get("reasoning", ""),  # raw value, travels in the published record
         reasoning_flag=f"--reasoning-parser {m['reasoning']}" if m.get("reasoning") else "",
     )
 

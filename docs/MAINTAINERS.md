@@ -41,7 +41,7 @@ chuangai list          # must end with "registry OK"
 2. Add a row in `registry/tasks.yaml` if users should launch it by name.
 3. `bsub < scripts/pull_models.lsf` to cache the weights.
 
-No code changes: the planner and renderer read the registry, and `bin/connect` reads whatever the servers publish (model, ctx, parser all travel in the record).
+No code changes: the planner and renderer read the registry, and `bin/connect` reads whatever the servers publish (model, ctx, parser, reasoning all travel in the record). A model with a `reasoning:` key gets `--reasoning-parser <value>` on the command line (render.py) and `reasoning: true` in the opencode model config (connect).
 
 ## Security notes
 

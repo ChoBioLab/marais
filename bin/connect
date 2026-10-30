@@ -127,6 +127,13 @@ def write_opencode(mine, selected):
         served = r["model"]
         port = int(r["port"])
         desc = f"{r.get('gpu') or 'cpu'} x{r.get('gpus', 1)}"
+        model_cfg = {
+            "name": f"{served} ({desc})",
+            "tool_call": r.get("parser", "hermes") not in (None, "none"),
+            "limit": {"context": int(r.get("ctx", 65536))},
+        }
+        if r.get("reasoning"):  # server runs --reasoning-parser; show the thinking
+            model_cfg["reasoning"] = True
         cfg["provider"][served] = {
             "npm": "@ai-sdk/openai-compatible",
             "name": f"{served} ({desc})",
@@ -134,13 +141,7 @@ def write_opencode(mine, selected):
                 "baseURL": f"http://127.0.0.1:{port}/v1",
                 "apiKey": "{env:MINERVA_VLLM_KEY}",
             },
-            "models": {
-                served: {
-                    "name": f"{served} ({desc})",
-                    "tool_call": r.get("parser", "hermes") not in (None, "none"),
-                    "limit": {"context": int(r.get("ctx", 65536))},
-                }
-            },
+            "models": {served: model_cfg},
         }
     cfg["model"] = f"{selected}/{selected}"
     path = pathlib.Path("opencode.json")

@@ -4,7 +4,7 @@ for _ in $(seq 1 240); do
        -H "Authorization: Bearer $(cat $keyfile)" >/dev/null; then
     cat > "$state_dir/${LSB_JOBID}.json" <<JSON
 {"jobid":"${LSB_JOBID}","model":"$served","gpu":"$gpu_res","gpus":$ngpus,
- "ctx":$max_len,"parser":"$parser",
+ "ctx":$max_len,"parser":"$parser","reasoning":"$reasoning",
  "host":"$(hostname)","port":$PORT,"user":"${USER}","since":"$(date -Is)"}
 JSON
     echo "READY -> $state_dir/${LSB_JOBID}.json (port $PORT)"
