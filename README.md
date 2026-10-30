@@ -1,7 +1,7 @@
 <!-- README.md -->
 # chuangai
 
-A private AI coding assistant for the lab. It runs a Qwen 27B model on Minerva GPUs. You use it from your own laptop through [opencode](https://opencode.ai/docs).
+A private AI coding assistant for the lab. It serves Qwen models (27B up to 125B) on Minerva GPUs. You use it from your own laptop through [opencode](https://opencode.ai/docs).
 
 ```
 laptop (opencode) ──ssh tunnel──> Minerva login node ──> GPU node (vLLM serving Qwen)

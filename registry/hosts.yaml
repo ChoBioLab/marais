@@ -14,7 +14,7 @@ hosts:
     queues: [gpu, gpuexpress]      # 'private' is not ours
     cpu_queue: express             # CPU-only rows (index); same queue pull_models.lsf uses
     login: minerva
-    base_url: "http://localhost:8000/v1"   # reached through an ssh tunnel
+    base_url: "http://127.0.0.1/v1"   # informational only; the port is per-server (20000-31999) and connect mirrors it from each published record
     keyfile: "~/.vllm_key"
     in_minerva_boundary: true
     phi_safe: false
