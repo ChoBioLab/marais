@@ -106,9 +106,24 @@ def host(name: str) -> dict:
 def validate() -> list[str]:
     """Return a list of problems; empty means the registry is coherent."""
     problems = []
+
+    # Model level: `served` keys job names, ports and opencode model ids,
+    # so it must be present and unique.
+    seen: dict[str, str] = {}
+    for mid, m in _models().items():
+        s = m.get("served")
+        if not s:
+            problems.append(f"models: {mid} has no served name")
+        elif s in seen:
+            problems.append(f"models: duplicate served name '{s}' ({seen[s]}, {mid})")
+        else:
+            seen[s] = mid
+
     for r in _tasks():
         if r.get("kind") in ("web", "human"):
             continue
+        if r.get("recipe") not in (None, "train", "index"):
+            problems.append(f"{r['id']}: unknown recipe '{r['recipe']}'")
         try:
             m = model(r["model"])
         except SystemExit as exc:
@@ -122,6 +137,11 @@ def validate() -> list[str]:
         if r.get("phi_ok") and not h.get("phi_safe"):
             problems.append(
                 f"{r['id']}: promises PHI but lane '{r['lane']}' is not phi_safe"
+            )
+        min_gpus = m.get("min_gpus", 1)
+        if r.get("gpus", min_gpus) < min_gpus:
+            problems.append(
+                f"{r['id']}: gpus {r.get('gpus')} < min_gpus {min_gpus} for {m['id']}"
             )
         prefs = r.get("gpu_pref", [])
         bad = [g for g in prefs if g not in m["gpus_ok"]]

@@ -24,7 +24,7 @@ tasks:
     kind: job
     lane: burst
     model: qwen27-fp8
-    gpu_pref: [l40s, h100nvl, a10080g]
+    gpu_pref: [h100nvl, a10080g]
     gpus: 1
     wait: "minutes"
     phi_ok: false               # burst is not phi_safe; PHI goes through `help`
@@ -46,7 +46,7 @@ tasks:
     kind: job
     lane: burst
     model: qwen27-fp8
-    gpu_pref: [l40s, h100nvl, a10080g]
+    gpu_pref: [h100nvl, a10080g]
     gpus: 2
     wait: "hours"
     phi_ok: false
