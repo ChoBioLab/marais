@@ -54,9 +54,34 @@ chmod +x ~/chuangai/bin/connect
 
 This is the same `bin/connect` file as in the repo. Re-run these three lines if Chris tells you it was updated.
 
-### 5. No laptop-side config
+### 5. Laptop: tell opencode about the server
 
-There is nothing to configure: `connect` writes the `opencode.json` your project needs every time you connect, and it reads your API key from Minerva for you (you never set `MINERVA_VLLM_KEY` yourself). If you followed an older guide and created `~/.config/opencode/opencode.json`, you can delete that file.
+Save this as `~/.config/opencode/opencode.json`. Create the folder first with `mkdir -p ~/.config/opencode`.
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "minerva-qwen27/qwen27",
+  "provider": {
+    "minerva-qwen27": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Minerva Qwen3.8 27B",
+      "options": {
+        "baseURL": "http://127.0.0.1:8000/v1",
+        "apiKey": "{env:MINERVA_VLLM_KEY}"
+      },
+      "models": {
+        "qwen27": {
+          "name": "Qwen3.8 27B (FP8)",
+          "limit": { "context": 65536, "output": 16384 }
+        }
+      }
+    }
+  }
+}
+```
+
+You don't set `MINERVA_VLLM_KEY` yourself. `connect` reads your key from Minerva and passes it to opencode.
 
 Setup is done. Don't repeat it.
 
@@ -64,7 +89,7 @@ Setup is done. Don't repeat it.
 
 ### 1. Minerva: start the server
 
-Run this from your own folder, not the shared project folder. The rendered job script is kept in `~/.local/state/chuangai/scripts/` — nothing is written into your folder.
+Run this from your own folder, not the shared project folder. The command writes a `.lsf` file and an `opencode.json` into the folder you run it from. Ignore both.
 
 ```bash
 mkdir -p ~/chuangai-jobs && cd ~/chuangai-jobs
@@ -101,9 +126,7 @@ cd ~/my-project
 ~/chuangai/bin/connect
 ```
 
-If more than one of your servers is running, it lists them and you pick one by its served name (the ones from `chuangai help`, e.g. `~/chuangai/bin/connect qwen27-bf16`).
-
-It prints progress and then `ready:`, writes an `opencode.json` into that folder, and opencode opens in that folder. Work as usual. If several of your servers are up, switch between them with `/models` inside opencode. The tunnel closes when you exit opencode.
+It prints progress and then `ready:`, and opencode opens in that folder. Work as usual. The tunnel closes when you exit opencode.
 
 ### 5. Finish: free the GPU
 
@@ -126,11 +149,10 @@ To reconnect later while the job is still running, repeat steps 3 and 4 only.
 | `No such file or directory: .../connect` (laptop) | Redo setup step 4. |
 | `Permission denied` running `connect` | Run `chmod +x ~/chuangai/bin/connect`. |
 | Asks for a password or token, or "Cannot reach Minerva" | Run `ssh -Nf minerva`. Your 8-hour login expired. |
-| `No '<model>' job found` | There's no server for that model. Run the matching `chuangai <row>` on Minerva (see `chuangai help`). Your job may also have hit its 12 h limit. |
-| `Several servers are published; pick one` | You have more than one server running. Re-run with a model name: `connect qwen27` (the list it prints shows the names). |
+| `No 'qwen27' job found` | There's no server. Run `chuangai engineer` on Minerva. Your job may also have hit its 12 h limit. |
 | Stays on "queued, waiting for a GPU" | All matching GPUs are busy. Run `chuangai status` on Minerva, and wait. |
 | `No API key in ~/.vllm_key` | Do setup step 2. If you changed the key, `bkill` the job and start a new one. |
-| `Local port NNNNN busy` | An old tunnel is still running. Run `pkill -f 'ssh .*-L NNNNN:'`, then retry. |
+| `Local port 8000 busy` | An old tunnel is still running. Run `pkill -f 'ssh .*-L 8000:'`, then retry. |
 | `Tunnel failed` | Redo setup step 3, then retry. |
 | `Server job ended during startup` | Run `ls -t /sc/arion/projects/untreatedIBD/chuangai/logs \| head`. Then run `tail -n 30 <newest .stderr file>`. Send that output to Chris. |
 | `opencode not found on PATH` | Install opencode, and open a new terminal. |
@@ -141,7 +163,7 @@ To reconnect later while the job is still running, repeat steps 3 and 4 only.
 ## FAQ
 
 - **Can I use it with patient data?** No. See the PHI warning in the README.
-- **Can I use other models?** Yes. Each row runs a model: `engineer`/`batch` serve `qwen27`, `reason` serves `qwen27-bf16`, and `frontier` serves `flashnext`. (`script` uses the always-on server and needs no tunnel.) Start the row on Minerva, then run `connect` (or `connect <model>` if you have several servers up) on the laptop. Switch between running servers live with `/models` inside opencode.
+- **Can I use other models?** Not yet through `connect`. It currently supports only `qwen27`, which is started by the `engineer` row.
 - **Will my files be sent anywhere?** opencode runs on your laptop and sends prompts and file contents only to your own server on Minerva, through your tunnel.
 - **Why does the first start take so long?** The job waits for a GPU, and then the 29 GB model loads. Later reconnects to a running job take seconds.
 - **Can I just type `connect`?** Only if you put `~/chuangai/bin` on your PATH. The full path is more reliable, and a bare `connect` can collide with other tools.

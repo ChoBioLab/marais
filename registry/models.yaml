@@ -8,10 +8,9 @@ models:
     served: qwen27
     parser: qwen3_coder
     ctx: 131072
-    reasoning: qwen3              # --reasoning-parser; vLLM splits the thinking blocks
     min_gpus: 1
     gpus_ok: [a10080g, h100nvl, h10080g, b200]
-    vllm_extra: "--max-num-seqs 256"
+    vllm_extra: "--max-num-seqs 256  --reasoning-parser qwen3"
 
   - id: qwen27-bf16
     hf: Qwen/Qwen3.8-27B
@@ -21,10 +20,9 @@ models:
     served: qwen27-bf16          # must differ from qwen27-fp8: job names key on it
     parser: qwen3_coder
     ctx: 262144
-    reasoning: qwen3              # --reasoning-parser; vLLM splits the thinking blocks
     min_gpus: 2
     gpus_ok: [a10080g, h100nvl, h10080g, b200]
-    vllm_extra: "--max-num-seqs 256"
+    vllm_extra: "--max-num-seqs 256  --reasoning-parser qwen3"
 
   - id: flashnext-fp8
     hf: Qwen/Qwen3.8-FlashNext-125B-FP8

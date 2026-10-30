@@ -3,11 +3,11 @@
 
 ## How a session fits together
 
-1. `chuangai engineer` (Minerva) renders `templates/serve.lsf.in`, writes the script to `~/.local/state/chuangai/scripts/`, and runs `bsub`. The job name is `chuangai_<served>_<gpu>_<n>x`.
-2. The job computes a port from `cksum("<user>:<served>")` and binds vLLM to `127.0.0.1:<port>` on the compute node. When vLLM first answers, it publishes a one-line JSON record (model, gpu, ctx, parser, host, port, user) to the shared state dir; the job's `trap` removes the record on exit.
-3. `bin/connect` (laptop) reads the published records over `ssh minerva`, opens one tunnel per compute node with the port **mirrored** (local port == remote port, 20000–31999), writes a project `opencode.json` with one provider per published server, and starts `opencode --standalone` with `MINERVA_VLLM_KEY` set. Users switch between published models with `/models`. `bjobs` + the port formula remain as a fallback when no record exists yet.
+1. `chuangai engineer` (Minerva) renders `templates/serve.lsf.in` and runs `bsub`. The job name is `chuangai_<served>_<gpu>_<n>x`.
+2. The job computes a port from `cksum("<user>:<served>")` and binds vLLM to `127.0.0.1:<port>` on the compute node. It also writes `port: N` to its `.stdout`.
+3. `bin/connect` (laptop) runs a probe over `ssh minerva` to find the job state, node and port. It also reads `~/.vllm_key`. It opens `ssh -L 8000:127.0.0.1:<port> -J minerva user@node`, polls `/health`, and then starts `opencode --standalone` with `MINERVA_VLLM_KEY` set.
 
-The server-side and fallback port formulas must stay identical:
+The server-side and client-side port formulas must stay identical:
 
 ```bash
 printf '%s' "$(id -un):<served>" | cksum | awk '{print 20000 + $1 % 12000}'
@@ -28,20 +28,20 @@ chuangai list          # must end with "registry OK"
 
 ## Known leftovers
 
-- `registry/hosts.yaml`: `images.blackwell` and `images.cpu` are still `<confirm>` placeholders. Until they are set, `frontier --allow-b200` and the `index` row refuse to render.
-- `--kv-cache-dtype fp8` is hard-coded in `templates/serve.lsf.in` for every model. Move it to `models.yaml` (a per-model `kv_dtype`) when a model needs a different one.
+- `templates/serve.lsf.in` should use the `cksum` port line. Then delete `bin/chuangai-port`.
+- `registry/tasks.yaml`: remove `l40s` from `gpu_pref` for `engineer` and `batch`. `qwen27-fp8` OOMs on it, and `chuangai list` flags it.
+- `chuangai/cli.py`: remove `cmd_connect` and the "run `chuangai connect`" hints. They conflict with `bin/connect`.
+- `chuangai <row>` writes `<job>.lsf` and `opencode.json` into the current directory. Consider writing the `.lsf` to a temp or state directory.
 - `python3` on a fresh account needs PyYAML. Confirm `chuangai help` works there, or load a module in `bin/chuangai`.
 - Add `--limit-mm-per-prompt '{"image":0,"video":0}'` to `qwen27-fp8`'s `vllm_extra` if you want the memory saving.
-- The `finetune` row renders, but `templates/train.lsf.in` still assumes the 4-GPU single-node shape (`--nproc-per-node=4`, one rendezvous endpoint) and has no data input; there is also no training image in `hosts.yaml` yet.
-- `index` builds an index but nothing queries it yet; the corpus path is hard-coded in `templates/index.lsf.in`.
 
-## Adding a model
+## Adding a model to `connect`
 
-1. Add it to `registry/models.yaml` with a **unique** `served` name — job names, ports and opencode model ids all key on it. (`chuangai list` validates uniqueness.)
-2. Add a row in `registry/tasks.yaml` if users should launch it by name.
-3. `bsub < scripts/pull_models.lsf` to cache the weights.
-
-No code changes: the planner and renderer read the registry, and `bin/connect` reads whatever the servers publish (model, ctx, parser, reasoning all travel in the record). A model with a `reasoning:` key gets `--reasoning-parser <value>` on the command line (render.py) and `reasoning: true` in the opencode model config (connect).
+1. Add `"<served>": <unique local port>` to `MODELS` in `bin/connect`.
+2. Add a matching provider block to the user's `opencode.json`, with the same local port in `baseURL`.
+3. The `served` name in `registry/models.yaml` must be unique per model, because job names and ports key on it.
+4. The probe's job-name glob is `chuangai_<served>_*`, and the trailing `_` keeps `qwen27` from matching `qwen27-bf16`.
+5. `bin/connect` launches opencode with the default model from `opencode.json`. For a second model, users pick it with `/models` inside opencode.
 
 ## Security notes
 

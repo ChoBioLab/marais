@@ -1,0 +1,5 @@
+#!/usr/bin/env python3
+import getpass, sys, zlib
+# 20000-31999 stays below Linux's ephemeral range (32768+)
+print(20000 + zlib.crc32(f"{getpass.getuser()}:{sys.argv[1]}".encode()) % 12000)
+

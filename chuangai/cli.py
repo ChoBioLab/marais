@@ -48,6 +48,12 @@ def _p_status() -> argparse.ArgumentParser:
     return p
 
 
+def _p_connect() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="chuangai connect")
+    p.add_argument("row_id")
+    return p
+
+
 def _p_reap() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="chuangai reap")
     p.add_argument("--older-than", type=float, default=24, metavar="HOURS")
@@ -63,13 +69,6 @@ def _state_dir() -> pathlib.Path:
     return pathlib.Path(registry.host("burst")["state_dir"])
 
 
-def _scripts_dir() -> pathlib.Path:
-    """Per-user, outside the user's project folder (see probe.STATE)."""
-    d = probe.STATE / "scripts"
-    d.mkdir(parents=True, exist_ok=True)
-    return d
-
-
 def _records() -> list[tuple[float, dict]]:
     sd, now, out = _state_dir(), time.time(), []
     if not sd.is_dir():
@@ -82,6 +81,16 @@ def _records() -> list[tuple[float, dict]]:
     return out
 
 
+def _find_record(served: str) -> dict | None:
+    """Newest non-stale published server for this served name."""
+    live = [
+        (age, d)
+        for age, d in _records()
+        if d.get("model") == served and age <= STALE_S
+    ]
+    return min(live, key=lambda t: t[0])[1] if live else None
+
+
 # --------------------------------------------------------------------------
 # commands
 # --------------------------------------------------------------------------
@@ -92,9 +101,9 @@ def cmd_help() -> int:
     for r in registry.tasks():
         print(f"  chuangai {r['id']:<10} {r['label']}  [{r['wait']}]")
     print("\n  chuangai status            what is running right now")
+    print("  chuangai connect <row>     write opencode.json + the tunnel")
     print("  chuangai reap              clear stale records")
     print("  chuangai list              show rows and verify the registry")
-    print("\n  laptop:  ~/chuangai/bin/connect [model]    tunnel + opencode")
     return 0
 
 
@@ -168,6 +177,52 @@ def cmd_reap(a) -> int:
     return 0
 
 
+def cmd_connect(a) -> int:
+    """Attach to a published server. Never plans, probes GPUs, or submits."""
+    try:
+        r = registry.row(a.row_id)
+    except KeyError:
+        print(f"unknown row '{a.row_id}'. Try `chuangai help`.")
+        return 2
+    if r["kind"] != "job" or "recipe" in r:
+        print(f"'{a.row_id}' is not a server row; see `chuangai help`.")
+        return 1
+
+    m = registry.model(r["model"])
+    h = registry.host(r["lane"])
+
+    # always-on lane: nothing to tunnel through
+    if h["scheduler"] == "none":
+        p = planner.plan(a.row_id)
+        path = opencode.write(p)
+        print(f"wrote {path} -> {m['served']} (direct, no tunnel)")
+        if p.note:
+            print(f"  note: {p.note}")
+        return 0
+
+    rec = _find_record(m["served"])
+    if rec is None:
+        print(f"nothing published for '{m['served']}' yet.")
+        print(f"  run `chuangai {a.row_id}` first, then `chuangai status`")
+        return 1
+
+    host, port = rec["host"], int(rec["port"])
+    p = planner.Plan(
+        a.row_id,
+        m,
+        r["lane"],
+        rec.get("gpu"),
+        int(rec.get("gpus", 1)),
+        h["base_url"],
+    )
+    path = opencode.write(p, port=port)
+    print(f"wrote {path} -> {rec.get('user', '?')}@{host}:{port}")
+    print("tunnel (leave running in another terminal):")
+    print(f"  ssh -N -L {port}:{host}:{port} {rec.get('user', '$USER')}@minerva")
+    print("then start opencode when the tunnel is up.")
+    return 0
+
+
 def _submit(p, script: pathlib.Path) -> str:
     rc, out, err = probe.sh(f"bsub < {script}")
     if rc != 0:
@@ -210,16 +265,16 @@ def launch(rid: str, a) -> int:
 
     # --- burst lane: reuse needs no script ---
     if p.job_id:
+        path = opencode.write(p)
         print(f"{rid}: reusing {p.job_id} on {p.exec_host}")
-        print(f"  laptop:  ~/chuangai/bin/connect {p.model['served']}  # tunnel + opencode")
+        print(f"wrote {path} -- run `chuangai connect {rid}` for the tunnel")
         return 0
 
     h = registry.host(p.host_name)
-    if not a.dry_run:
-        pathlib.Path(h["log_dir"]).mkdir(parents=True, exist_ok=True)
-        _state_dir().mkdir(parents=True, exist_ok=True)
+    pathlib.Path(h["log_dir"]).mkdir(parents=True, exist_ok=True)
+    _state_dir().mkdir(parents=True, exist_ok=True)
 
-    script = _scripts_dir() / f"{planner.job_name(p.model['served'], p.gpu, p.gpus)}.lsf"
+    script = pathlib.Path(f"{planner.job_name(p.model['served'], p.gpu, p.gpus)}.lsf")
     render.render(p, script)
 
     if p.template in ("train", "index"):
@@ -240,8 +295,8 @@ def launch(rid: str, a) -> int:
         return 0
     job_id = _submit(p, script)
     print(f"  submitted {job_id}")
-    print("  next:  chuangai status                    # wait for it to appear")
-    print(f"         ~/chuangai/bin/connect {p.model['served']}  # tunnel + opencode (laptop)")
+    print("  next:  chuangai status          # wait for it to appear")
+    print(f"         chuangai connect {rid}   # write opencode.json + tunnel")
     return 0
 
 
@@ -258,6 +313,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_list()
     if head == "status":
         return cmd_status(_p_status().parse_args(rest))
+    if head == "connect":
+        return cmd_connect(_p_connect().parse_args(rest))
     if head == "reap":
         return cmd_reap(_p_reap().parse_args(rest))
 

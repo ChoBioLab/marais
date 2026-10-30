@@ -1,19 +1,9 @@
 #!/usr/bin/env python3
-"""connect: attach to running Minerva LLM servers, open the tunnels, launch opencode.
-
-Jobs are submitted on Minerva with `chuangai <row>`. Each healthy server
-publishes a one-line JSON record to the shared state dir (see
-templates/partials/health.sh.in); connect discovers them over ssh, mirrors
-each server's port to the laptop (local port == remote port, 20000-31999),
-writes a project opencode.json, and launches opencode.
-
-Several servers can be open at once; switch between them with /models.
-Nothing here submits or kills jobs -- that is done on Minerva (chuangai, bkill).
+"""connect: attach to a running Minerva LLM server, open the tunnel, launch opencode.
+Jobs are submitted/stopped on Minerva (./bin/chuangai <mode>, bkill). Every remote call goes over ssh.
 """
 import argparse
-import json
 import os
-import pathlib
 import shutil
 import socket
 import subprocess
@@ -24,25 +14,16 @@ import urllib.request
 
 HOST = "minerva"  # ssh alias in ~/.ssh/config
 KEYFILE = "~/.vllm_key"  # API key path on Minerva
-# Must match state_dir in registry/hosts.yaml (burst lane).
-STATE_DIR = "/sc/arion/projects/untreatedIBD/chuangai/servers"
+JOBGLOB = "chuangai_{served}_*"  # LSF job-name pattern
+MODELS = {"qwen27": 8000}  # served name -> local port (must match opencode.json)
 
-# One round trip: who am I, plus every published record less than a day old.
-FETCH = f"""
-echo "USER $(id -un)"
-find {STATE_DIR} -maxdepth 1 -name '*.json' -mtime -1 -exec cat {{}} + 2>/dev/null
-"""
-
-# Queue-state report and fallback when no record exists yet: the job state
-# plus the deterministic port (formula must match serve.lsf.in).
+# Port formula must match serve.lsf.in
 PROBE = r"""
 S=@S@
 P=$(printf '%s' "$(id -un):$S" | cksum | awk '{print 20000 + $1 % 12000}')
-line=$(bjobs -noheader -J "chuangai_${S}_*" -o 'stat:10 exec_host:40 job_name:80' 2>/dev/null | sort -r | head -1)
-echo "$P ${line:-NONE}"
+read -r st host < <(bjobs -noheader -J "@GLOB@" -o 'stat:10 exec_host:80' 2>/dev/null | sort -r | head -1)
+echo "$P ${st:-NONE} ${host:--} $(id -un)"
 """
-
-RUNS_BEFORE_FALLBACK = 12  # ~2 min of "RUN but no record" before using the probe
 
 
 def remote(script):
@@ -53,57 +34,30 @@ def remote(script):
         sys.exit(
             r.stderr.strip() or "Cannot reach Minerva. Run 'ssh -Nf minerva' first."
         )
-    return r.stdout
-
-
-def fetch_servers():
-    """(minerva_user, [record, ...]) for all fresh published servers."""
-    out = remote(FETCH)
-    me, records = None, []
-    for line in out.splitlines():
-        if line.startswith("USER "):
-            me = line.split(None, 1)[1]
-        else:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                records.append(json.loads(line))
-            except ValueError:
-                pass
-    return me, records
+    lines = r.stdout.strip().splitlines()
+    return lines[-1] if lines else ""
 
 
 def probe(served):
-    """(port, stat, host, job_name) from bjobs; stat 'NONE' when no job."""
-    out = remote(PROBE.replace("@S@", served)).split()
-    if len(out) < 2 or out[1] == "NONE":
-        return int(out[0]), "NONE", None, None
-    host = out[2].split(":")[0].split("*")[-1]
-    return int(out[0]), out[1], host, " ".join(out[3:]) or None
+    out = remote(
+        PROBE.replace("@S@", served).replace("@GLOB@", JOBGLOB.format(served=served))
+    ).split()
+    if len(out) != 4:
+        sys.exit(f"Unexpected probe output: {out!r}")
+    port, st, host, user = out
+    return int(port), st, host.split(":")[0].split("*")[-1], user
 
 
-def parse_job_name(name, served):
-    """chuangai_<served>_<gpu>_<n>x -> (gpu, n); (None, None) when it doesn't fit."""
-    prefix = f"chuangai_{served}_"
-    if not name or not name.startswith(prefix):
-        return None, None
-    gpu, sep, tail = name[len(prefix):].rpartition("_")
-    if not sep or not tail.endswith("x") or not tail[:-1].isdigit():
-        return None, None
-    return gpu, int(tail[:-1])
-
-
-def local_busy(port):
+def port_open(p):
     with socket.socket() as s:
         s.settimeout(0.3)
-        return s.connect_ex(("127.0.0.1", port)) == 0
+        return s.connect_ex(("127.0.0.1", p)) == 0
 
 
-def healthy(port):
+def healthy(lport):
     try:
         return (
-            urllib.request.urlopen(f"http://127.0.0.1:{port}/health", timeout=3).status
+            urllib.request.urlopen(f"http://127.0.0.1:{lport}/health", timeout=3).status
             == 200
         )
     except urllib.error.HTTPError as e:
@@ -116,113 +70,31 @@ def say(t0, msg):
     print(f"[{int(time.time() - t0):>4}s] {msg}", flush=True)
 
 
-def write_opencode(mine, selected):
-    """Project opencode.json: one provider per published server, all switchable.
-
-    Local ports mirror the remote ones, so every provider points at its own
-    mirrored port and every model works from one config file.
-    """
-    cfg = {"$schema": "https://opencode.ai/config.json", "provider": {}}
-    for r in mine:
-        served = r["model"]
-        port = int(r["port"])
-        desc = f"{r.get('gpu') or 'cpu'} x{r.get('gpus', 1)}"
-        model_cfg = {
-            "name": f"{served} ({desc})",
-            "tool_call": r.get("parser", "hermes") not in (None, "none"),
-            "limit": {"context": int(r.get("ctx", 65536))},
-        }
-        if r.get("reasoning"):  # server runs --reasoning-parser; show the thinking
-            model_cfg["reasoning"] = True
-        cfg["provider"][served] = {
-            "npm": "@ai-sdk/openai-compatible",
-            "name": f"{served} ({desc})",
-            "options": {
-                "baseURL": f"http://127.0.0.1:{port}/v1",
-                "apiKey": "{env:MINERVA_VLLM_KEY}",
-            },
-            "models": {served: model_cfg},
-        }
-    cfg["model"] = f"{selected}/{selected}"
-    path = pathlib.Path("opencode.json")
-    path.write_text(json.dumps(cfg, indent=2) + "\n")
-    return path
-
-
 def main():
-    ap = argparse.ArgumentParser(prog="connect")
+    ap = argparse.ArgumentParser(prog="chuangai-tunnel")
     ap.add_argument(
-        "served",
-        nargs="?",
-        help="served model name (e.g. qwen27); default: the only published one",
+        "model", nargs="?", default="qwen27", choices=MODELS, help="served model name"
     )
     ap.add_argument(
         "--tunnel-only",
         action="store_true",
-        help="keep the tunnels open; don't launch opencode",
+        help="keep the tunnel open; don't launch opencode",
     )
     a = ap.parse_args()
-    t0, last = time.time(), None
+    lport, t0, last = MODELS[a.model], time.time(), None
 
-    # 1. Find the selected server among my fresh published records.
-    served, runs = a.served, 0
+    # 1. Wait for the user's job to be RUNNING (never submits)
     while True:
-        me, records = fetch_servers()
-        mine = [
-            r
-            for r in records
-            if r.get("user") == me and r.get("model") and r.get("port")
-        ]
-        if served is None:
-            if not mine:
-                sys.exit(
-                    "No published servers for you yet.\n"
-                    "  On Minerva:  chuangai <row>   then   chuangai status"
-                )
-            if len(mine) == 1:
-                served = mine[0]["model"]
-            else:
-                print("Several servers are published; pick one:\n")
-                for r in mine:
-                    print(
-                        f"  connect {r['model']}    "
-                        f"({r.get('gpu') or 'cpu'} x{r.get('gpus', 1)} on {r.get('host', '?')})"
-                    )
-                sys.exit(1)
-        sel = next((r for r in mine if r["model"] == served), None)
-        if sel is not None:
+        rport, st, node, user = probe(a.model)
+        if st == "RUN":
             break
-        # No record yet: report job state and wait for vLLM to publish.
-        port, st, host, name = probe(served)
         if st == "NONE":
             sys.exit(
-                f"No '{served}' job found. On Minerva, start one first:  chuangai <row>"
+                f"No '{a.model}' job found. On Minerva, start one first:  ./bin/chuangai <mode>"
             )
-        msg = {
-            "PEND": "queued, waiting for a GPU",
-            "RUN": "job running; waiting for vLLM to load and publish",
-        }.get(st, f"job state: {st}")
         if st != last:
-            say(t0, msg)
+            say(t0, "queued, waiting for a GPU" if st == "PEND" else f"job state: {st}")
         last = st
-        if st == "RUN":
-            runs += 1
-            if runs >= RUNS_BEFORE_FALLBACK:
-                # No record after ~2 min of RUN (state dir missing/unreadable):
-                # fall back to the deterministic port and the job name.
-                gpu, n = parse_job_name(name, served)
-                sel = {
-                    "model": served,
-                    "host": host,
-                    "port": port,
-                    "gpu": gpu,
-                    "gpus": n or 1,
-                    "user": me,
-                }
-                say(t0, "no published record; using the job's deterministic port")
-                break
-        else:
-            runs = 0
         time.sleep(10)
 
     # 2. API key (read server-side)
@@ -230,72 +102,51 @@ def main():
     if not key:
         sys.exit(f"No API key in {KEYFILE} on Minerva.")
 
-    # 3. Tunnels: one ssh per compute node; local port mirrors the remote port.
-    ports = sorted({int(r["port"]) for r in mine})
-    busy = [p for p in ports if local_busy(p)]
-    if busy:
+    # 3. Tunnel: client:lport -> (jump via login node) -> compute node loopback:rport
+    if port_open(lport):
         sys.exit(
-            f"Local port {busy[0]} busy (old tunnel?). "
-            f"Run: pkill -f 'ssh .*-L {busy[0]}:'"
+            f"Local port {lport} busy (old tunnel?). Run: pkill -f 'ssh .*-L {lport}:'"
         )
-    by_node = {}
-    for r in mine:
-        by_node.setdefault(r.get("host"), []).append(r)
-    tunnels = []
-    for node in sorted(n for n in by_node if n):
-        argv = [
-            "ssh", "-N",
-            "-o", "ExitOnForwardFailure=yes",
-            "-o", "ServerAliveInterval=30",
-            "-o", "StrictHostKeyChecking=accept-new",
-            "-o", "LogLevel=QUIET",
-            "-J", HOST,
-        ]
-        for r in by_node[node]:
-            p = int(r["port"])
-            argv += ["-L", f"{p}:127.0.0.1:{p}"]
-        argv.append(f"{me}@{node}")
-        tunnels.append(subprocess.Popen(argv, stdin=subprocess.DEVNULL))
+    tun = subprocess.Popen(
+        [
+            "ssh",
+            "-N",
+            "-o",
+            "ExitOnForwardFailure=yes",
+            "-o",
+            "ServerAliveInterval=30",
+            "-o",
+            "StrictHostKeyChecking=accept-new",
+            "-o",
+            "LogLevel=QUIET",
+            "-L",
+            f"{lport}:127.0.0.1:{rport}",
+            "-J",
+            HOST,
+            f"{user}@{node}",
+        ],
+        stdin=subprocess.DEVNULL,
+    )
 
     try:
-        # 4. Wait for the selected server to answer through the tunnel.
-        lport = int(sel["port"])
-        say(t0, f"waiting for {served} on {sel.get('host') or '?'}")
+        # 4. Wait for vLLM to finish loading
+        say(t0, f"waiting for model on {node}")
         n = 0
         while not healthy(lport):
-            if any(t.poll() is not None for t in tunnels):
-                sys.exit(
-                    "Tunnel failed. Check: ssh -J minerva <user>@<node> hostname"
-                )
+            if tun.poll() is not None:
+                sys.exit("Tunnel failed. Check: ssh -J minerva <user>@<node> hostname")
             n += 1
-            if n % 6 == 0:
-                _, records2 = fetch_servers()
-                if not any(
-                    r.get("model") == served and r.get("user") == me for r in records2
-                ):
-                    sys.exit(
-                        "Server job ended during startup. "
-                        "Check its .stderr on Minerva."
-                    )
+            if n % 6 == 0 and probe(a.model)[1] != "RUN":
+                sys.exit(
+                    "Server job ended during startup. Check its .stderr on Minerva."
+                )
             time.sleep(5)
-        say(
-            t0,
-            f"ready: {served} -> http://127.0.0.1:{lport}/v1"
-            + (
-                f"  (+{len(mine) - 1} more model(s) via /models)"
-                if len(mine) > 1
-                else ""
-            ),
-        )
+        say(t0, f"ready: http://127.0.0.1:{lport}/v1")
 
-        path = write_opencode(mine, served)
-        print(f"opencode config: {path.resolve()}")
-
-        # 5. Launch opencode (or just hold the tunnels).
+        # 5. Launch opencode (or just hold the tunnel)
         if a.tunnel_only:
-            print("Tunnels open. Ctrl-C to disconnect.")
-            for t in tunnels:
-                t.wait()
+            print("Tunnel open. Ctrl-C to disconnect.")
+            tun.wait()
         elif not shutil.which("opencode"):
             sys.exit("opencode not found on PATH.")
         else:
@@ -306,11 +157,9 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
-        for t in tunnels:
-            t.terminate()
+        tun.terminate()
         print(
-            "Disconnected. The server job is still running; "
-            "release it on Minerva with: bkill <jobid>"
+            "Disconnected. The server job is still running; release it on Minerva with: bkill <jobid>"
         )
 
 
