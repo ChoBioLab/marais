@@ -6,11 +6,11 @@ models:
     format: fp8
     weights_gb: 29
     served: qwen27
-    parser: hermes
-    ctx: 65536
+    parser: qwen3_coder
+    ctx: 131072
     min_gpus: 1
     gpus_ok: [a10080g, h100nvl, h10080g, b200]
-    vllm_extra: "--max-num-seqs 256"     # hybrid Mamba cache: default 1024 > blocks available
+    vllm_extra: "--max-num-seqs 256  --reasoning-parser qwen3"
 
   - id: qwen27-bf16
     hf: Qwen/Qwen3.8-27B
@@ -18,11 +18,11 @@ models:
     format: bf16
     weights_gb: 56
     served: qwen27-bf16          # must differ from qwen27-fp8: job names key on it
-    parser: hermes
-    ctx: 65536
+    parser: qwen3_coder
+    ctx: 262144
     min_gpus: 2
     gpus_ok: [a10080g, h100nvl, h10080g, b200]
-    vllm_extra: "--max-num-seqs 256"
+    vllm_extra: "--max-num-seqs 256  --reasoning-parser qwen3"
 
   - id: flashnext-fp8
     hf: Qwen/Qwen3.8-FlashNext-125B-FP8
@@ -31,7 +31,7 @@ models:
     weights_gb: 125
     served: flashnext
     parser: hermes
-    ctx: 131072
+    ctx: 262144
     min_gpus: 2
     gpus_ok: [h100nvl, a10080g, b200]     # 125 GB will not fit an L40S row
     vllm_extra: "--max-num-seqs 256"      # precaution; remove if this model is not hybrid
