@@ -61,19 +61,21 @@ Save this as `~/.config/opencode/opencode.json`. Create the folder first with `m
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "minerva-qwen27/qwen27",
+  "model": "minerva-assistant/gpt-oss-120b",
   "provider": {
-    "minerva-qwen27": {
+    "minerva-assistant": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "Minerva Qwen3.8 27B",
+      "name": "Minerva Assistant",
       "options": {
-        "baseURL": "http://127.0.0.1:8000/v1",
-        "apiKey": "{env:MINERVA_VLLM_KEY}"
+        "baseURL": "https://assistant.hpc.mssm.edu/api",
+        "apiKey": "{file:~/.config/opencode/secrets/minerva-assistant-key}"
       },
       "models": {
-        "qwen27": {
-          "name": "Qwen3.8 27B (FP8)",
-          "limit": { "context": 65536, "output": 16384 }
+        "gpt-oss-120b": {
+          "name": "Assistant: GPT-OSS 120B (vLLM)",
+          "tool_call": true,
+          "reasoning": true,
+          "limit": { "context": 120000, "output": 16384 }
         }
       }
     }
@@ -84,6 +86,19 @@ Save this as `~/.config/opencode/opencode.json`. Create the folder first with `m
 You don't set `MINERVA_VLLM_KEY` yourself. `connect` reads your key from Minerva and passes it to opencode.
 
 Setup is done. Don't repeat it.
+
+### 6. Use the shared OpenCode configuration (once per repository)
+
+The repository ships a hidden `/.opencode/` directory containing a ready‑made OpenCode configuration (Tier‑0 default). Copy it to your personal config once:
+
+```bash
+mkdir -p ~/.config/opencode
+cp -r .opencode/* ~/.config/opencode/
+# Do NOT copy the `secrets/` folder; create your own key there:
+# ~/.config/opencode/secrets/minerva-assistant-key (chmod 600)
+```
+
+After this, `opencode` will automatically use the Tier‑0 **Minerva‑Assistant** models. Edit `~/.config/opencode/opencode.json` only if you need a Tier‑1 or Bedrock model.
 
 ## Every session
 

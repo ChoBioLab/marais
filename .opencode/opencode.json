@@ -1,0 +1,125 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // Baseline team config. PHI/data policy for the Assistant tier is UNCONFIRMED: no sensitive data.
+  "model": "minerva-assistant/gpt-oss-120b",
+  "small_model": "minerva-assistant/gpt-oss:20b",
+
+  "permission": {
+    "edit": "ask",
+    "bash": "ask",
+    "skill": { "*": "allow", "experimental-*": "ask" }
+  },
+  "instructions": ["AGENTS.md", ".opencode/rules/*.md"],
+
+  "agent": {
+    "reviewer": {
+      "mode": "subagent",
+      "description": "Independent reviewer for ONE file. Give it the exact path; it reads the file itself.",
+      "model": "minerva-assistant/nemotron-3-nano:30b",
+      "prompt": "You review exactly one file. Step 1: call read on the path in the task (offset 1, limit 2000). If you did not read it, reply NOT READ. Never review from memory or general knowledge. Output ONLY lines of the form: <line> | `<verbatim line>` | <defect>. At most 8 lines. If nothing is certain, output NONE.",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "webfetch": "deny",
+        "task": "deny"
+      }
+    },
+    "scout": {
+      "mode": "subagent",
+      "description": "Fast read-only worker for ONE narrow question about named files.",
+      "model": "minerva-assistant/gpt-oss:20b",
+      "prompt": "Read the files named in the task with read/grep/glob. Answer only the question asked, under 200 words, citing file:line. If you did not read the file, say so.",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "webfetch": "deny",
+        "task": "deny"
+      }
+    }
+  },
+
+  "provider": {
+    "minerva-assistant": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Minerva Assistant",
+      "options": {
+        "baseURL": "https://assistant.hpc.mssm.edu/api",
+        "apiKey": "{file:~/.config/opencode/secrets/minerva-assistant-key}"
+      },
+      "models": {
+        "gpt-oss-120b": {
+          "name": "Assistant: GPT-OSS 120B (vLLM)",
+          "tool_call": true,
+          "reasoning": true,
+          "limit": { "context": 120000, "output": 16384 }
+        },
+        "gpt-oss:20b": {
+          "name": "Assistant: gpt-oss 20B (Ollama, ~32k)",
+          "tool_call": true,
+          "limit": { "context": 30000, "output": 8192 }
+        },
+        "nemotron-3-nano:30b": {
+          "name": "Assistant: Nemotron 3 Nano 30B (Ollama, ~32k)",
+          "tool_call": true,
+          "limit": { "context": 30000, "output": 8192 }
+        },
+        "muse-glimmer:latest": {
+          "name": "Assistant: Muse Glimmer 28B (Ollama, ~32k, slow)",
+          "tool_call": true,
+          "limit": { "context": 30000, "output": 8192 }
+        }
+      }
+    },
+    "minerva-qwen27": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Minerva Qwen3.8 27B FP8",
+      "options": {
+        "baseURL": "http://127.0.0.1:8000/v1",
+        "apiKey": "{env:MINERVA_VLLM_KEY}"
+      },
+      "models": {
+        "qwen27": {
+          "name": "Qwen3.8 27B (FP8)",
+          "tool_call": true,
+          "reasoning": true,
+          "limit": { "context": 131072, "output": 32768 }
+        }
+      }
+    },
+    "minerva-qwen27-bf16": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Minerva Qwen3.8 27B BF16",
+      "options": {
+        "baseURL": "http://127.0.0.1:8001/v1",
+        "apiKey": "{env:MINERVA_VLLM_KEY}"
+      },
+      "models": {
+        "qwen27-bf16": {
+          "name": "Qwen3.8 27B (BF16)",
+          "tool_call": true,
+          "reasoning": true,
+          "limit": { "context": 262144, "output": 32768 }
+        }
+      }
+    },
+    "minerva-flashnext": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Minerva Qwen3.8 FlashNext 125B FP8",
+      "options": {
+        "baseURL": "http://127.0.0.1:8002/v1",
+        "apiKey": "{env:MINERVA_VLLM_KEY}"
+      },
+      "models": {
+        "flashnext": {
+          "name": "Qwen3.8 FlashNext 125B (FP8)",
+          "tool_call": true,
+          "reasoning": true,
+          "limit": { "context": 262144, "output": 32768 }
+        }
+      }
+    },
+    "amazon-bedrock": {
+      "options": { "region": "us-east-1", "profile": "lab-bedrock" }
+    }
+  }
+}

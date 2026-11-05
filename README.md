@@ -1,13 +1,13 @@
 <!-- README.md -->
 # chuangai
 
-A private AI coding assistant for the lab. It runs a Qwen 27B model on Minerva GPUs. You use it from your own laptop through [opencode](https://opencode.ai/docs).
+A private AI coding assistant for the lab. It runs the Tier‑0 **Minerva‑Assistant** models (GPT‑OSS 120B/20B) as the default workhorse. You use it from your own laptop through [opencode](https://opencode.ai/docs).
 
 ```
 laptop (opencode) ──ssh tunnel──> Minerva login node ──> GPU node (vLLM serving Qwen)
 ```
 
-> **No patient data (PHI).** The `engineer` row runs outside the PHI-safe enclave. If your work involves PHI, run `chuangai help` and talk to Chris.
+> **No patient data (PHI).** By default we run the Tier‑0 **Minerva‑Assistant** models (GPT‑OSS 120B/20B) as the primary workhorse. Tier‑1 GPU‑node models (Qwen‑27B, FlashNext‑125B) and the optional AWS Bedrock provider remain available for niche use cases that need those specific models. The `engineer` row still runs outside the PHI‑safe enclave. If your work involves PHI, run `chuangai help` and talk to Chris.
 
 ## Quick start (after one-time setup)
 
@@ -35,3 +35,16 @@ laptop (opencode) ──ssh tunnel──> Minerva login node ──> GPU node (v
 | `chuangai/` | Python package behind `bin/chuangai`. |
 | `registry/*.yaml` | Models, GPU lanes, task rows. The single source of truth. |
 | `templates/` | LSF job templates. |
+
+## Configuration
+
+The repository provides a shared OpenCode configuration in the hidden `/.opencode/` directory. To use it:
+
+```bash
+mkdir -p ~/.config/opencode
+cp -r .opencode/* ~/.config/opencode/
+# Do NOT copy the secrets/ folder; create your own key there.
+```
+
+The copied `opencode.json` sets the Tier‑0 **Minerva‑Assistant** models as the default. Edit the file only if you need a Tier‑1 or Bedrock model.
+
