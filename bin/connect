@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """connect: attach to a running Minerva LLM server, open the tunnel, launch opencode.
-Jobs are submitted/stopped on Minerva (./bin/chuangai <mode>, bkill). Every remote call goes over ssh.
+Jobs are submitted/stopped on Minerva (./bin/marais <mode>, bkill). Every remote call goes over ssh.
 """
 import argparse
 import os
@@ -14,7 +14,7 @@ import urllib.request
 
 HOST = "minerva"  # ssh alias in ~/.ssh/config
 KEYFILE = "~/.vllm_key"  # API key path on Minerva
-JOBGLOB = "chuangai_{served}_*"  # LSF job-name pattern
+JOBGLOB = "marais_{served}_*"  # LSF job-name pattern
 MODELS = {"qwen27": 8000}  # served name -> local port (must match opencode.json)
 
 # Port formula must match serve.lsf.in
@@ -71,7 +71,7 @@ def say(t0, msg):
 
 
 def main():
-    ap = argparse.ArgumentParser(prog="chuangai-tunnel")
+    ap = argparse.ArgumentParser(prog="marais-tunnel")
     ap.add_argument(
         "model", nargs="?", default="qwen27", choices=MODELS, help="served model name"
     )
@@ -90,7 +90,7 @@ def main():
             break
         if st == "NONE":
             sys.exit(
-                f"No '{a.model}' job found. On Minerva, start one first:  ./bin/chuangai <mode>"
+                f"No '{a.model}' job found. On Minerva, start one first:  ./bin/marais <mode>"
             )
         if st != last:
             say(t0, "queued, waiting for a GPU" if st == "PEND" else f"job state: {st}")

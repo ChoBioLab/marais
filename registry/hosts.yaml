@@ -19,8 +19,8 @@ hosts:
     in_minerva_boundary: true
     phi_safe: false
     hf_home: /sc/arion/projects/untreatedIBD/cache/huggingface
-    log_dir: /sc/arion/projects/untreatedIBD/chuangai/logs
-    state_dir: /sc/arion/projects/untreatedIBD/chuangai/servers
+    log_dir: /sc/arion/projects/untreatedIBD/marais/logs
+    state_dir: /sc/arion/projects/untreatedIBD/marais/servers
     cores: 8
     mem: "16GB"                    # PER SLOT (LSF multiplies by -n)
     walltime: "12:00"

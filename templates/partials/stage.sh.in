@@ -9,7 +9,7 @@ echo "source: $SNAP"
 
 if [ "$stage_ssd" = "1" ]; then
   # -L: snapshot files are symlinks into ../../blobs; copy the targets
-  STAGE_DIR="/ssd/chuangai_${LSB_JOBID}"
+  STAGE_DIR="/ssd/marais_${LSB_JOBID}"
   mkdir -p "$STAGE_DIR"
   rsync -aL --info=progress2 "$SNAP"/ "$STAGE_DIR"/
   export MODEL_PATH="$STAGE_DIR"

@@ -5,7 +5,7 @@ Scope limits, deliberate:
 * `bjobs` only shows the submitting user's jobs on Minerva, so reuse is
   same-user / same-served / same-gpu / same-count. Cross-user discovery is
   the shared state dir (cli.cmd_status), never `bjobs`.
-* Wait telemetry starts empty. Until `chuangai status` has observed a job go
+* Wait telemetry starts empty. Until `marais status` has observed a job go
   PEND -> RUN, `mean_wait` is None and selection is pure preference order.
 """
 
@@ -41,7 +41,7 @@ class Plan:
 def job_name(served: str, gpu: str | None, gpus: int) -> str:
     # gpus is encoded so a 4-GPU row cannot silently reuse a 2-GPU server.
     # `served` must be unique per model id (see models.yaml).
-    return f"chuangai_{served}_{gpu or 'cpu'}_{gpus}x"
+    return f"marais_{served}_{gpu or 'cpu'}_{gpus}x"
 
 
 def _running_for(
@@ -115,7 +115,7 @@ def plan(
         raise SystemExit(
             f"'{rid}' cannot be used for PHI.\n"
             f"lane '{host_name}' is outside the PHI-safe enclave.\n"
-            "Run `chuangai help` and talk to Chris about an enclave lane."
+            "Run `marais help` and talk to Chris about an enclave lane."
         )
 
     template = _template_for(r)
@@ -201,7 +201,7 @@ def plan(
         )
         raise SystemExit(
             f"no card has room for {gpus}x {m['served']} right now ({seen}).\n"
-            "  -> `chuangai status` to see what is running\n"
+            "  -> `marais status` to see what is running\n"
             "  -> wait and retry, or name a card with --gpu"
         )
 

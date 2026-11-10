@@ -3,5 +3,5 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
 export PYTHONPATH="$HERE${PYTHONPATH:+:$PYTHONPATH}"
-exec python3 -m chuangai.cli "$@"
+exec python3 -m marais.cli "$@"
 

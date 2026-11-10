@@ -1,5 +1,5 @@
 <!-- README.md -->
-# chuangai
+# marais
 
 A private AI coding assistant for the lab. It runs the Tier‑0 **Minerva‑Assistant** models (GPT‑OSS 120B/20B) as the default workhorse. You use it from your own laptop through [opencode](https://opencode.ai/docs).
 
@@ -7,14 +7,14 @@ A private AI coding assistant for the lab. It runs the Tier‑0 **Minerva‑Assi
 laptop (opencode) ──ssh tunnel──> Minerva login node ──> GPU node (vLLM serving Qwen)
 ```
 
-> **No patient data (PHI).** By default we run the Tier‑0 **Minerva‑Assistant** models (GPT‑OSS 120B/20B) as the primary workhorse. Tier‑1 GPU‑node models (Qwen‑27B, FlashNext‑125B) and the optional AWS Bedrock provider remain available for niche use cases that need those specific models. The `engineer` row still runs outside the PHI‑safe enclave. If your work involves PHI, run `chuangai help` and talk to Chris.
+> **No patient data (PHI).** By default we run the Tier‑0 **Minerva‑Assistant** models (GPT‑OSS 120B/20B) as the primary workhorse. Tier‑1 GPU‑node models (Qwen‑27B, FlashNext‑125B) and the optional AWS Bedrock provider remain available for niche use cases that need those specific models. The `engineer` row still runs outside the PHI‑safe enclave. If your work involves PHI, run `marais help` and talk to Chris.
 
 ## Usage tracks
 
 | Track | When to use | Core steps |
 |------|-------------|------------|
 | **A – Minerva‑Assistant (Tier‑0) – default workhorse** | Most everyday work; no GPU job needed. | 1️⃣ Obtain an Assistant API key from the web UI.<br>2️⃣ Save it to `~/.config/opencode/secrets/minerva-assistant-key`.<br>3️⃣ Copy the shared `/.opencode/` config.<br>4️⃣ Run `opencode --standalone`. |
-| **B – Self‑hosted VLLM helper (Tier‑1 / Bedrock)** | Need a custom model or larger context; requires a GPU job. | 1️⃣ Set up SSH config and generate a VLLM key.<br>2️⃣ Start a Minerva job (`chuangai engineer`).<br>3️⃣ Copy the shared config (same as Track A).<br>4️⃣ Run `~/chuangai/bin/connect`. |
+| **B – Self‑hosted VLLM helper (Tier‑1 / Bedrock)** | Need a custom model or larger context; requires a GPU job. | 1️⃣ Set up SSH config and generate a VLLM key.<br>2️⃣ Start a Minerva job (`marais engineer`).<br>3️⃣ Copy the shared config (same as Track A).<br>4️⃣ Run `~/marais/bin/connect`. |
 
 ## Quick start – Track A (Minerva‑Assistant)
 
@@ -32,7 +32,7 @@ laptop (opencode) ──ssh tunnel──> Minerva login node ──> GPU node (v
 
 | Where | Step | Command |
 |---|---|---|
-| Minerva | 1. Start the server | `chuangai engineer` |
+| Minerva | 1. Start the server | `marais engineer` |
 | Minerva | 2. Wait until the job is `RUN` (+5‑10 min) | `bjobs` |
 | Laptop | 3. Log in once (2FA) | `ssh -Nf minerva` |
 | Laptop | 4. Open Opencode (e.g., `opencode` or launch the UI) | `opencode` |
@@ -50,9 +50,9 @@ laptop (opencode) ──ssh tunnel──> Minerva login node ──> GPU node (v
 
 | Path | Purpose |
 |---|---|
-| `bin/chuangai` | Runs on Minerva. Picks a GPU, renders the LSF script, submits the job. |
+| `bin/marais` | Runs on Minerva. Picks a GPU, renders the LSF script, submits the job. |
 | `bin/connect` | Runs on the laptop. Opens the tunnel and starts opencode. |
-| `chuangai/` | Python package behind `bin/chuangai`. |
+| `marais/` | Python package behind `bin/marais`. |
 | `registry/*.yaml` | Models, GPU lanes, task rows. The single source of truth. |
 | `templates/` | LSF job templates. |
 

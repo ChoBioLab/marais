@@ -6,8 +6,8 @@
 #BSUB -R "span[hosts=1]"
 #BSUB -R "rusage[mem=4GB]"
 #BSUB -W 12:00
-#BSUB -o /sc/arion/projects/untreatedIBD/cache/tools/chuangai/logs/pull_%J.stdout
-#BSUB -eo /sc/arion/projects/untreatedIBD/cache/tools/chuangai/logs/pull_%J.stderr
+#BSUB -o /sc/arion/projects/untreatedIBD/cache/tools/marais/logs/pull_%J.stdout
+#BSUB -eo /sc/arion/projects/untreatedIBD/cache/tools/marais/logs/pull_%J.stderr
 #BSUB -L /bin/bash
 #
 # usage:  bsub < pull_models.lsf                                   # all repos in models.yaml
@@ -21,7 +21,7 @@ set -uo pipefail
 export HF_HOME=/sc/arion/projects/untreatedIBD/cache/huggingface
 export HF_HUB_DISABLE_PROGRESS_BARS=1           # keep the log file readable
 unset HF_HUB_OFFLINE TRANSFORMERS_OFFLINE       # offline mode would block the download
-MODELS_YAML="${MODELS_YAML:-/sc/arion/projects/untreatedIBD/cache/tools/chuangai/registry/models.yaml}"
+MODELS_YAML="${MODELS_YAML:-/sc/arion/projects/untreatedIBD/cache/tools/marais/registry/models.yaml}"
 
 echo "=== ${LSB_JOBID} $(hostname) $(date -Is) ==="
 

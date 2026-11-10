@@ -15,7 +15,7 @@ import time
 
 COUNT = re.compile(r"^(\d+)/(\d+)$")
 
-STATE = pathlib.Path.home() / ".local" / "state" / "chuangai"
+STATE = pathlib.Path.home() / ".local" / "state" / "marais"
 WAITS = STATE / "waits.json"  # in-flight submits: jobid -> record
 OBSERVED = STATE / "observed.jsonl"  # append-only: one line per job start
 
@@ -114,7 +114,7 @@ def record_submit(model: str, gpu: str | None, job_id: str) -> None:
 def record_start(job_id: str) -> float | None:
     """Call when one of our jobs is first seen RUN. Returns the wait, seconds.
 
-    Measured to the first `chuangai status` that sees RUN, so it is an upper
+    Measured to the first `marais status` that sees RUN, so it is an upper
     bound on the true wait.
     """
     if not WAITS.exists():

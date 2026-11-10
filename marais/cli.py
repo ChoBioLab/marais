@@ -1,4 +1,4 @@
-"""chuangai -- one command per row on the poster."""
+"""marais -- one command per row on the poster."""
 
 from __future__ import annotations
 
@@ -35,13 +35,13 @@ def _row_flags(p: argparse.ArgumentParser) -> None:
 
 
 def _p_row() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="chuangai", add_help=True)
+    p = argparse.ArgumentParser(prog="marais", add_help=True)
     _row_flags(p)
     return p
 
 
 def _p_status() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="chuangai status")
+    p = argparse.ArgumentParser(prog="marais status")
     p.add_argument(
         "--check", action="store_true", help="TCP-probe each published server"
     )
@@ -49,13 +49,13 @@ def _p_status() -> argparse.ArgumentParser:
 
 
 def _p_connect() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="chuangai connect")
+    p = argparse.ArgumentParser(prog="marais connect")
     p.add_argument("row_id")
     return p
 
 
 def _p_reap() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="chuangai reap")
+    p = argparse.ArgumentParser(prog="marais reap")
     p.add_argument("--older-than", type=float, default=24, metavar="HOURS")
     return p
 
@@ -97,13 +97,13 @@ def _find_record(served: str) -> dict | None:
 
 
 def cmd_help() -> int:
-    print("chuangai -- pick the row that matches what you want to do\n")
+    print("marais -- pick the row that matches what you want to do\n")
     for r in registry.tasks():
-        print(f"  chuangai {r['id']:<10} {r['label']}  [{r['wait']}]")
-    print("\n  chuangai status            what is running right now")
-    print("  chuangai connect <row>     write opencode.json + the tunnel")
-    print("  chuangai reap              clear stale records")
-    print("  chuangai list              show rows and verify the registry")
+        print(f"  marais {r['id']:<10} {r['label']}  [{r['wait']}]")
+    print("\n  marais status            what is running right now")
+    print("  marais connect <row>     write opencode.json + the tunnel")
+    print("  marais reap              clear stale records")
+    print("  marais list              show rows and verify the registry")
     return 0
 
 
@@ -149,10 +149,10 @@ def cmd_status(a) -> int:
             f"{d.get('user', '?')}@{d.get('host')}:{d.get('port')}{tag}"
         )
     if stale:
-        print(f"  ({len(stale)} record(s) older than 24h -- `chuangai reap`)")
+        print(f"  ({len(stale)} record(s) older than 24h -- `marais reap`)")
 
     # our own jobs; first sight of RUN closes out the wait measurement
-    mine = [j for j in probe.my_jobs() if j["name"].startswith("chuangai_")]
+    mine = [j for j in probe.my_jobs() if j["name"].startswith("marais_")]
     for j in mine:
         if j["stat"] in RUNNING:
             probe.record_start(j["id"])
@@ -182,10 +182,10 @@ def cmd_connect(a) -> int:
     try:
         r = registry.row(a.row_id)
     except KeyError:
-        print(f"unknown row '{a.row_id}'. Try `chuangai help`.")
+        print(f"unknown row '{a.row_id}'. Try `marais help`.")
         return 2
     if r["kind"] != "job" or "recipe" in r:
-        print(f"'{a.row_id}' is not a server row; see `chuangai help`.")
+        print(f"'{a.row_id}' is not a server row; see `marais help`.")
         return 1
 
     m = registry.model(r["model"])
@@ -203,7 +203,7 @@ def cmd_connect(a) -> int:
     rec = _find_record(m["served"])
     if rec is None:
         print(f"nothing published for '{m['served']}' yet.")
-        print(f"  run `chuangai {a.row_id}` first, then `chuangai status`")
+        print(f"  run `marais {a.row_id}` first, then `marais status`")
         return 1
 
     host, port = rec["host"], int(rec["port"])
@@ -245,7 +245,7 @@ def launch(rid: str, a) -> int:
         return 0
     if r["kind"] == "human":
         print(f"This one needs {r.get('who', 'Chris')}. Send:")
-        print(f"  - what you ran: chuangai {rid}")
+        print(f"  - what you ran: marais {rid}")
         print("  - what you expected")
         print("  - what you got, and the input that broke it")
         return 0
@@ -267,7 +267,7 @@ def launch(rid: str, a) -> int:
     if p.job_id:
         path = opencode.write(p)
         print(f"{rid}: reusing {p.job_id} on {p.exec_host}")
-        print(f"wrote {path} -- run `chuangai connect {rid}` for the tunnel")
+        print(f"wrote {path} -- run `marais connect {rid}` for the tunnel")
         return 0
 
     h = registry.host(p.host_name)
@@ -285,7 +285,7 @@ def launch(rid: str, a) -> int:
             return 0
         job_id = _submit(p, script)
         print(f"  submitted {job_id}")
-        print("  watch:  chuangai status")
+        print("  watch:  marais status")
         return 0
 
     print(f"{rid}: {p.model['served']} on {p.gpus}x {p.gpu}")
@@ -295,8 +295,8 @@ def launch(rid: str, a) -> int:
         return 0
     job_id = _submit(p, script)
     print(f"  submitted {job_id}")
-    print("  next:  chuangai status          # wait for it to appear")
-    print(f"         chuangai connect {rid}   # write opencode.json + tunnel")
+    print("  next:  marais status          # wait for it to appear")
+    print(f"         marais connect {rid}   # write opencode.json + tunnel")
     return 0
 
 
@@ -321,7 +321,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         rid = registry.canonical_row(head)
     except KeyError:
-        print(f"unknown row '{head}'. Try `chuangai help`.")
+        print(f"unknown row '{head}'. Try `marais help`.")
         return 2
     return launch(rid, _p_row().parse_args(rest))
 

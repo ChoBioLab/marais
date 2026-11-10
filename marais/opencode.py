@@ -19,7 +19,7 @@ def write(p, path: pathlib.Path | None = None, port: int = 8000) -> pathlib.Path
         "provider": {
             "vllm": {
                 "npm": "@ai-sdk/openai-compatible",
-                "name": "vLLM (chuangai)",
+                "name": "vLLM (marais)",
                 "options": {
                     "baseURL": base,
                     "apiKey": "{file:~/.vllm_key}",

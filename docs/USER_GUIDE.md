@@ -1,5 +1,5 @@
 <!-- docs/USER_GUIDE.md -->
-# chuangai user guide
+# marais user guide
 
 ## What you need
 
@@ -65,10 +65,10 @@ Run these in the Minerva session once.
 
 ```bash
 openssl rand -hex 24 > ~/.vllm_key && chmod 600 ~/.vllm_key
-echo "alias chuangai='/sc/arion/projects/untreatedIBD/chuangai/bin/chuangai'" >> ~/.bashrc
+echo "alias marais='/sc/arion/projects/untreatedIBD/marais/bin/marais'" >> ~/.bashrc
 ```
 
-Log out and back in, then check that `chuangai help` prints a list of rows.
+Log out and back in, then check that `marais help` prints a list of rows.
 
 #### 3. Laptop: let the tunnel reach compute nodes without a password
 
@@ -80,9 +80,9 @@ ssh minerva 'umask 077; mkdir -p ~/.ssh; cat >> ~/.ssh/authorized_keys' < ~/.ssh
 #### 4. Laptop: install `connect`
 
 ```bash
-mkdir -p ~/chuangai/bin
-scp minerva:/sc/arion/projects/untreatedIBD/chuangai/bin/connect ~/chuangai/bin/connect
-chmod +x ~/chuangai/bin/connect
+mkdir -p ~/marais/bin
+scp minerva:/sc/arion/projects/untreatedIBD/marais/bin/connect ~/marais/bin/connect
+chmod +x ~/marais/bin/connect
 ```
 
 This is the same `bin/connect` file as in the repo. Re‑run these three lines if Chris tells you it was updated.
@@ -140,8 +140,8 @@ After this, `opencode` will automatically use the Tier‑0 **Minerva‑Assistant
 Run this from your own folder, not the shared project folder. The command writes a `.lsf` file and an `opencode.json` into the folder you run it from. Ignore both.
 
 ```bash
-mkdir -p ~/chuangai-jobs && cd ~/chuangai-jobs
-chuangai engineer
+mkdir -p ~/marais-jobs && cd ~/marais-jobs
+marais engineer
 ```
 
 It prints `submitted <jobid>`. If it says a server is already running, you can reuse that one.
@@ -171,7 +171,7 @@ Go to the folder you want to work on, then run `connect` by its full path:
 
 ```bash
 cd ~/my-project
-~/chuangai/bin/connect
+~/marais/bin/connect
 ```
 
 It prints progress and then `ready:`, and opencode opens in that folder. Work as usual. The tunnel closes when you exit opencode.
@@ -193,21 +193,21 @@ To reconnect later while the job is still running, repeat steps 3 and 4 only.
 
 | What you see | What to do |
 |---|---|
-| `chuangai: command not found` (Minerva) | Add the alias line from setup step 2 to `~/.bash_profile` too, then log in again. |
+| `marais: command not found` (Minerva) | Add the alias line from setup step 2 to `~/.bash_profile` too, then log in again. |
 | `No such file or directory: .../connect` (laptop) | Redo setup step 4. |
-| `Permission denied` running `connect` | Run `chmod +x ~/chuangai/bin/connect`. |
+| `Permission denied` running `connect` | Run `chmod +x ~/marais/bin/connect`. |
 | Asks for a password or token, or "Cannot reach Minerva" | Run `ssh -Nf minerva`. Your 8-hour login expired. |
-| `No 'qwen27' job found` | There's no server. Run `chuangai engineer` on Minerva. Your job may also have hit its 12 h limit. |
-| Stays on "queued, waiting for a GPU" | All matching GPUs are busy. Run `chuangai status` on Minerva, and wait. |
+| `No 'qwen27' job found` | There's no server. Run `marais engineer` on Minerva. Your job may also have hit its 12 h limit. |
+| Stays on "queued, waiting for a GPU" | All matching GPUs are busy. Run `marais status` on Minerva, and wait. |
 | `No API key in ~/.vllm_key` | Do setup step 2. If you changed the key, `bkill` the job and start a new one. |
 | `No API key in ~/.config/opencode/secrets/minerva-assistant-key` | Follow the “Obtain an API key” steps in Track A. |
 | `Local port 8000 busy` | An old tunnel is still running. Run `pkill -f 'ssh .*-L 8000:'`, then retry. |
 | `Tunnel failed` | Redo setup step 3, then retry. |
-| `Server job ended during startup` | Run `ls -t /sc/arion/projects/untreatedIBD/chuangai/logs \| head`. Then run `tail -n 30 <newest .stderr file>`. Send that output to Chris. |
+| `Server job ended during startup` | Run `ls -t /sc/arion/projects/untreatedIBD/marais/logs \| head`. Then run `tail -n 30 <newest .stderr file>`. Send that output to Chris. |
 | `opencode not found on PATH` | Install opencode, and open a new terminal. |
 | opencode says "connection refused" mid-session | The job ended or the tunnel dropped. Run `bjobs`, start a new job if needed, and run `opencode --standalone` again. |
 | Replies show `<think>` text | Known cosmetic issue. Tell Chris. |
-| Anything else | Run `chuangai help` and send Chris what you ran, what you expected, and what you got. |
+| Anything else | Run `marais help` and send Chris what you ran, what you expected, and what you got. |
 
 ## FAQ
 
@@ -215,4 +215,4 @@ To reconnect later while the job is still running, repeat steps 3 and 4 only.
 - **Can I use other models?** Not yet through `connect`. It currently supports only `qwen27`, which is started by the `engineer` row.
 - **Will my files be sent anywhere?** opencode runs on your laptop and sends prompts and file contents only to your own server on Minerva, through your tunnel.
 - **Why does the first start take so long?** The job waits for a GPU, and then the 29 GB model loads. Later reconnects to a running job take seconds.
-- **Can I just type `connect`?** Only if you put `~/chuangai/bin` on your PATH. The full path is more reliable, and a bare `connect` can collide with other tools.
+- **Can I just type `connect`?** Only if you put `~/marais/bin` on your PATH. The full path is more reliable, and a bare `connect` can collide with other tools.

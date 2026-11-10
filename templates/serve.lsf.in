@@ -23,11 +23,11 @@ nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 ml apptainer
 ml proxies
 
-trap 'rm -f "$state_dir/${LSB_JOBID}.json"; rm -rf "/ssd/chuangai_${LSB_JOBID}"' EXIT
+trap 'rm -f "$state_dir/${LSB_JOBID}.json"; rm -rf "/ssd/marais_${LSB_JOBID}"' EXIT
 
 $STAGE
 
-# deterministic per-user/per-model port; the client computes the same value with bin/chuangai-port
+# deterministic per-user/per-model port; the client computes the same value with bin/marais-port
 PORT=$(printf '%s' "$(id -un):$served" | cksum | awk '{print 20000 + $1 % 12000}')
 if ss -ltn | grep -q ":$PORT "; then echo "FATAL: port $PORT busy on $(hostname -s)"; exit 1; fi
 echo "port: $PORT"

@@ -23,7 +23,7 @@ echo "nodes=$nodes gpus=$ngpus cores=$ncpus"
 ml apptainer
 ml proxies
 
-trap 'rm -rf "/ssd/chuangai_${LSB_JOBID}"' EXIT
+trap 'rm -rf "/ssd/marais_${LSB_JOBID}"' EXIT
 
 $STAGE
 
