@@ -26,7 +26,7 @@
 
    ```bash
    mkdir -p ~/.config/opencode
-   cp -r .opencode/* ~/.config/opencode/
+   ./setup-opencode.sh   # symlinks the shared config into ~/.config/opencode, backing up any existing files
    # Do NOT copy the `secrets/` folder; you already placed the key above.
    ```
 
@@ -126,7 +126,7 @@ The repository ships a hidden `/.opencode/` directory containing a ready‑made 
 
 ```bash
 mkdir -p ~/.config/opencode
-cp -r .opencode/* ~/.config/opencode/
+./setup-opencode.sh   # symlinks the shared config into ~/.config/opencode, backing up any existing files
 # Do NOT copy the `secrets/` folder; create your own key there:
 # ~/.config/opencode/secrets/minerva-assistant-key (chmod 600)
 ```
@@ -188,6 +188,41 @@ bkill <JOBID>
 GPUs are shared. Please release yours when you're done. A job also stops by itself after 12 hours.
 
 To reconnect later while the job is still running, repeat steps 3 and 4 only.
+
+### First interaction (examples)
+- **Design review**: `@designer "I plan a CRISPR knockout of TP53 in human iPSC, 4 replicates, batch‑randomized."` – the `designer` agent will load the `design-review` skill and return a structured critique.
+- **Literature lookup**: `/lit TP53` – the `literature` agent fetches curated evidence tables (see example in the documentation).
+- **Audit a script**: `/audit scripts/analysis.R "check multiple‑testing correction"` – the `auditor` agent reviews the file and reports any defects.
+- **Scaffold a new analysis**: `/new-analysis my-rna‑seq` – creates a reproducible folder layout with a README and placeholder files.
+
+### Where the files live
+- The **source** definitions are in the repository under `agents/`, `commands/`, and `skills/`.
+- Running `./setup-opencode.sh` **symlinks** the repository’s `agents/`, `commands/`, and `skills/` directories into `~/.config/opencode`.
+- OpenCode always reads from `~/.config/opencode`; any change you make in the repo is instantly reflected after restarting OpenCode (no need to copy files again).
+
+### Adding new agents, commands, or skills
+#### New agent
+1. Create `agents/<name>.md` (use existing files as a template).
+2. Define `description`, `mode` (`primary` or `subagent`), and an optional `permission` block.
+3. Commit the file; run `./setup-opencode.sh` or restart OpenCode to expose the new agent.
+
+#### New command
+1. Create `commands/<name>.md` with a front‑matter block (`description`, `agent`, optional `subtask`).
+2. Write the command template (`$ARGUMENTS`, `$1`, `$2`).
+3. Restart OpenCode to make the command available.
+
+#### New skill
+1. Make a directory `skills/<skill-id>/` and add `SKILL.md` (include `name`, `description`, numbered steps).
+2. Reference the skill in an agent prompt with `Load the <skill-id> skill`.
+3. No code changes required – the skill is loaded at runtime.
+
+### FAQ (quick)
+- **Why does `setup-opencode.sh` warn about missing keys?**
+  The script checks for the Assistant API key and `biomcp`. If either is absent, later commands will fail; add the key or install `biomcp-cli` before proceeding.
+- **Can I edit the symlinked files directly?**
+  Yes, but changes should be made in the repository (the source) and then re‑run `setup‑opencode.sh` for consistency across teammates.
+- **How do I add a custom permission?**
+  Edit `/.opencode/opencode.json` → `permission` and add the desired glob pattern. Restart OpenCode afterwards.
 
 ## Troubleshooting
 
