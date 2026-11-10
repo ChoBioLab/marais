@@ -9,11 +9,44 @@
 
 ## First-time setup (once per person, about 10 minutes)
 
-### 1. Laptop: add Minerva to your SSH config
+### A. Set up the Minerva‑Assistant (Tier‑0) – default workhorse
+
+1. **Obtain an API key**  
+   Open a browser, go to https://assistant.hpc.mssm.edu, click **Continue with Microsoft**, then **Settings → Account** and press **Generate API key**. Copy the displayed key.
+
+2. **Save the key locally**  
+
+   ```bash
+   mkdir -p ~/.config/opencode/secrets
+   echo "<PASTE_KEY_HERE>" > ~/.config/opencode/secrets/minerva-assistant-key
+   chmod 600 ~/.config/opencode/secrets/minerva-assistant-key
+   ```
+
+3. **Copy the shared OpenCode configuration** (once per repository)
+
+   ```bash
+   mkdir -p ~/.config/opencode
+   cp -r .opencode/* ~/.config/opencode/
+   # Do NOT copy the `secrets/` folder; you already placed the key above.
+   ```
+
+4. **Open Opencode (standalone)**
+
+    Ensure you are on the MSSM VPN (or on‑campus) before opening Opencode.
+
+   ```bash
+   opencode
+   ```
+
+   No VLLM job or tunnel is required for this track.
+
+### B. Set up a self‑hosted VLLM helper (optional)
+
+#### 1. Laptop: add Minerva to your SSH config
 
 Open `~/.ssh/config` (create it if missing) and add the block below. Replace `YOURUSER` with your Minerva username.
 
-```
+```text
 Host minerva
     HostName minerva.hpc.mssm.edu
     User YOURUSER
@@ -26,9 +59,9 @@ Host minerva
 
 Check it with `ssh minerva`. Log in with your password and token, then leave that session open for the next step.
 
-### 2. Minerva: create your API key and a shortcut
+#### 2. Minerva: create your VLLM API key and a shortcut
 
-Run these in the Minerva session from step 1. Run them once.
+Run these in the Minerva session once.
 
 ```bash
 openssl rand -hex 24 > ~/.vllm_key && chmod 600 ~/.vllm_key
@@ -37,14 +70,14 @@ echo "alias chuangai='/sc/arion/projects/untreatedIBD/chuangai/bin/chuangai'" >>
 
 Log out and back in, then check that `chuangai help` prints a list of rows.
 
-### 3. Laptop: let the tunnel reach compute nodes without a password
+#### 3. Laptop: let the tunnel reach compute nodes without a password
 
 ```bash
 [ -f ~/.ssh/id_ed25519 ] || ssh-keygen -t ed25519 -N ""
 ssh minerva 'umask 077; mkdir -p ~/.ssh; cat >> ~/.ssh/authorized_keys' < ~/.ssh/id_ed25519.pub
 ```
 
-### 4. Laptop: install `connect`
+#### 4. Laptop: install `connect`
 
 ```bash
 mkdir -p ~/chuangai/bin
@@ -52,9 +85,9 @@ scp minerva:/sc/arion/projects/untreatedIBD/chuangai/bin/connect ~/chuangai/bin/
 chmod +x ~/chuangai/bin/connect
 ```
 
-This is the same `bin/connect` file as in the repo. Re-run these three lines if Chris tells you it was updated.
+This is the same `bin/connect` file as in the repo. Re‑run these three lines if Chris tells you it was updated.
 
-### 5. Laptop: tell opencode about the server
+#### 5. Laptop: tell opencode about the server
 
 Save this as `~/.config/opencode/opencode.json`. Create the folder first with `mkdir -p ~/.config/opencode`.
 
@@ -72,7 +105,7 @@ Save this as `~/.config/opencode/opencode.json`. Create the folder first with `m
       },
       "models": {
         "gpt-oss-120b": {
-          "name": "Assistant: GPT-OSS 120B (vLLM)",
+          "name": "Assistant: GPT‑OSS 120B (vLLM)",
           "tool_call": true,
           "reasoning": true,
           "limit": { "context": 120000, "output": 16384 }
@@ -87,7 +120,7 @@ You don't set `MINERVA_VLLM_KEY` yourself. `connect` reads your key from Minerva
 
 Setup is done. Don't repeat it.
 
-### 6. Use the shared OpenCode configuration (once per repository)
+#### 6. Use the shared OpenCode configuration (once per repository)
 
 The repository ships a hidden `/.opencode/` directory containing a ready‑made OpenCode configuration (Tier‑0 default). Copy it to your personal config once:
 
@@ -167,11 +200,12 @@ To reconnect later while the job is still running, repeat steps 3 and 4 only.
 | `No 'qwen27' job found` | There's no server. Run `chuangai engineer` on Minerva. Your job may also have hit its 12 h limit. |
 | Stays on "queued, waiting for a GPU" | All matching GPUs are busy. Run `chuangai status` on Minerva, and wait. |
 | `No API key in ~/.vllm_key` | Do setup step 2. If you changed the key, `bkill` the job and start a new one. |
+| `No API key in ~/.config/opencode/secrets/minerva-assistant-key` | Follow the “Obtain an API key” steps in Track A. |
 | `Local port 8000 busy` | An old tunnel is still running. Run `pkill -f 'ssh .*-L 8000:'`, then retry. |
 | `Tunnel failed` | Redo setup step 3, then retry. |
 | `Server job ended during startup` | Run `ls -t /sc/arion/projects/untreatedIBD/chuangai/logs \| head`. Then run `tail -n 30 <newest .stderr file>`. Send that output to Chris. |
 | `opencode not found on PATH` | Install opencode, and open a new terminal. |
-| opencode says "connection refused" mid-session | The job ended or the tunnel dropped. Run `bjobs`, start a new job if needed, and run `~/chuangai/bin/connect` again. |
+| opencode says "connection refused" mid-session | The job ended or the tunnel dropped. Run `bjobs`, start a new job if needed, and run `opencode --standalone` again. |
 | Replies show `<think>` text | Known cosmetic issue. Tell Chris. |
 | Anything else | Run `chuangai help` and send Chris what you ran, what you expected, and what you got. |
 
