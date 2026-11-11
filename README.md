@@ -96,17 +96,7 @@ The copied `opencode.json` sets the Tier‑0 **Minerva‑Assistant** models as t
 - `/nextflow-launch` – launch an nfcore/Nextflow pipeline via the `nextflow-runner` agent.
 
 **Skills**
-- **Scientific skill suite** (recommended for genetics/genomics):
-  - `literature-review`
-  - `statistical-analysis`
-  - `scientific-visualization`
-  - `exploratory-data-analysis`
-  - `scanpy`
-  - `bulk-rnaseq`
-  - `deeptools`
-  - `genomic-intelligence`
-  - `biopython`
-  - `scvi-tools`
+- The scientific skill suite has been deprecated; the previously listed skills (e.g., literature-review, statistical-analysis, scientific-visualization, exploratory-data-analysis, scanpy, bulk-rnaseq, deeptools, genomic-intelligence, biopython, scvi-tools) are no longer available.
 
 **MCP (BioMCP)**
 - Provides programmatic access to PubMed, UniProt, GTEx, gnomAD, ClinVar, Reactome, STRING and many other biomedical resources.
