@@ -1,0 +1,31 @@
+name: variant-pathogenicity-workflow
+steps:
+  - id: clinvar
+    command: biomcp
+    args:
+      - get
+      - variant
+      - "{{variant}}"
+      - clinvar
+      - predictions
+      - population
+  - id: civic
+    command: biomcp
+    args:
+      - get
+      - variant
+      - "{{variant}}"
+      - civic
+      - cgi
+  - id: trials
+    command: biomcp
+    args:
+      - variant
+      - trials
+      - "{{variant}}"
+  - id: articles
+    command: biomcp
+    args:
+      - variant
+      - articles
+      - "{{variant}}"

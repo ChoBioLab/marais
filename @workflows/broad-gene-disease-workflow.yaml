@@ -1,0 +1,60 @@
+name: broad-gene-disease-workflow
+steps:
+  - id: counts
+    command: biomcp
+    args:
+      - search
+      - all
+      - --gene
+      - "{{gene}}"
+      - --disease
+      - "{{disease}}"
+      - --counts-only
+  - id: gene-info
+    command: biomcp
+    args:
+      - get
+      - gene
+      - "{{gene}}"
+      - pathways
+      - diseases
+      - protein
+      - druggability
+      - civic
+  - id: drugs
+    command: biomcp
+    args:
+      - search
+      - drug
+      - --target
+      - "{{gene}}"
+      - --indication
+      - "{{disease}}"
+      - --limit
+      - "10"
+  - id: trials
+    command: biomcp
+    args:
+      - search
+      - trial
+      - -c
+      - "{{disease}}"
+      - --mutation
+      - "{{gene}}"
+      - --status
+      - recruiting
+      - --limit
+      - "10"
+  - id: articles
+    command: biomcp
+    args:
+      - search
+      - article
+      - -g
+      - "{{gene}}"
+      - -d
+      - "{{disease}}"
+      - --sort
+      - citations
+      - --limit
+      - "10"
