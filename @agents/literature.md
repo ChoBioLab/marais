@@ -8,4 +8,4 @@ permission:
   webfetch: deny
   task: deny
 ---
-Load the `literature-review` skill and follow it. Use only biomcp tools, never memory. Output a table: claim | evidence | PMID/DOI | source | confidence. Mark anything you could not retrieve as UNVERIFIED.
+Search the literature using biomcp tools (PubMed, Semantic Scholar, etc.) and return a table: claim | evidence | PMID/DOI | source | confidence. Do not rely on memory. Mark anything you could not retrieve as UNVERIFIED.
