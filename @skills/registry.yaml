@@ -1,0 +1,34 @@
+skills:
+  - id: setup-matt-pocock-skills
+    version: latest
+    source: https://github.com/mattpocock/skills
+  - id: literature-review
+    version: latest
+    source: https://github.com/K-Dense-AI/scientific-agent-skills
+  - id: statistical-analysis
+    version: latest
+    source: https://github.com/K-Dense-AI/scientific-agent-skills
+  - id: scientific-visualization
+    version: latest
+    source: https://github.com/K-Dense-AI/scientific-agent-skills
+  - id: exploratory-data-analysis
+    version: latest
+    source: https://github.com/K-Dense-AI/scientific-agent-skills
+  - id: scanpy
+    version: latest
+    source: https://github.com/K-Dense-AI/scientific-agent-skills
+  - id: bulk-rnaseq
+    version: latest
+    source: https://github.com/K-Dense-AI/scientific-agent-skills
+  - id: deeptools
+    version: latest
+    source: https://github.com/K-Dense-AI/scientific-agent-skills
+  - id: genomic-intelligence
+    version: latest
+    source: https://github.com/K-Dense-AI/scientific-agent-skills
+  - id: biopython
+    version: latest
+    source: https://github.com/K-Dense-AI/scientific-agent-skills
+  - id: scvi-tools
+    version: latest
+    source: https://github.com/K-Dense-AI/scientific-agent-skills

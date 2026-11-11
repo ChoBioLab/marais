@@ -3,7 +3,7 @@
 This document explains how to add or modify **agents**, **commands**, **skills**, and **configuration** in the marais repository.
 
 ## 1. Adding a new **agent**
-1. Create a new markdown file in `agents/`, e.g. `agents/myagent.md`.
+1. Create a new markdown file in `@agents/`, e.g. `@agents/myagent.md`.
 2. Use the following skeleton (copy from an existing file):
    ```markdown
    ---
@@ -16,10 +16,10 @@ This document explains how to add or modify **agents**, **commands**, **skills**
    You are a ... (prompt that the LLM will see).
    ```
 3. Commit the file.
-4. Run `./setup-opencode.sh` **or** simply restart OpenCode – the new agent will be symlinked into `~/.config/opencode/agents` and become available.
+4. Run `./setup-opencode.sh` **or** simply restart OpenCode – the new agent will be available in `~/.config/opencode/agents` after running `setup-opencode.sh`.
 
 ## 2. Adding a new **command**
-1. Create `commands/<name>.md`.
+1. Create `@commands/<name>.md`.
 2. Front‑matter example:
    ```markdown
    ---
@@ -32,7 +32,7 @@ This document explains how to add or modify **agents**, **commands**, **skills**
 3. Save, commit, and restart OpenCode.
 
 ## 3. Adding a new **skill**
-1. Make a directory `skills/<skill-id>/`.
+1. Make a directory `@skills/<skill-id>/`.
 2. Inside it, add `SKILL.md` with the required header and numbered steps:
    ```markdown
    ---
@@ -60,7 +60,7 @@ This document explains how to add or modify **agents**, **commands**, **skills**
 - After editing, restart OpenCode.
 
 ## 6. Testing your changes
-1. Run `./setup-opencode.sh` to refresh symlinks.
+1. Run `./setup-opencode.sh` to refresh the OpenCode configuration.
 2. Start a fresh OpenCode session: `opencode`.
 3. Use `opencode agents list` and `opencode commands list` to verify your additions appear.
 4. Run a quick test, e.g. `@myagent "test"` or `/mycommand arg`.

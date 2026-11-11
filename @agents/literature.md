@@ -8,4 +8,4 @@ permission:
   webfetch: deny
   task: deny
 ---
-Load the `literature-verification` skill and follow it. Use only biomcp tools, never memory. Output a table: claim | evidence | PMID/DOI | source | confidence. Mark anything you could not retrieve as UNVERIFIED.
+Load the `literature-review` skill and follow it. Use only biomcp tools, never memory. Output a table: claim | evidence | PMID/DOI | source | confidence. Mark anything you could not retrieve as UNVERIFIED.

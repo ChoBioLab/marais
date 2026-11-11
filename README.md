@@ -13,8 +13,8 @@ laptop (opencode) ──ssh tunnel──> Minerva login node ──> GPU node (v
 
 | Track | When to use | Core steps |
 |------|-------------|------------|
-| **A – Minerva‑Assistant (Tier‑0) – default workhorse** | Most everyday work; no GPU job needed. | 1️⃣ Obtain an Assistant API key from the web UI.<br>2️⃣ Save it to `~/.config/opencode/secrets/minerva-assistant-key`.<br>3️⃣ Run the repository bootstrap script (symlinks the shared config).<br>4️⃣ Run `opencode --standalone`. |
-| **B – Self‑hosted VLLM helper (Tier‑1 / Bedrock)** | Need a custom model or larger context; requires a GPU job. | 1️⃣ Set up SSH config and generate a VLLM key.<br>2️⃣ Start a Minerva job (`marais engineer`).<br>3️⃣ Run the repository bootstrap script (symlinks the shared config).<br>4️⃣ Run `~/marais/bin/connect`. |
+| **A – Minerva‑Assistant (Tier‑0) – default workhorse** | Most everyday work; no GPU job needed. | 1️⃣ Obtain an Assistant API key from the web UI.<br>2️⃣ Save it to `~/.config/opencode/secrets/minerva-assistant-key`.<br>3️⃣ Run the repository bootstrap script (copies the shared config).<br>4️⃣ Run `opencode --standalone`. |
+| **B – Self‑hosted VLLM helper (Tier‑1 / Bedrock)** | Need a custom model or larger context; requires a GPU job. | 1️⃣ Set up SSH config and generate a VLLM key.<br>2️⃣ Start a Minerva job (`marais engineer`).<br>3️⃣ Run the repository bootstrap script (copies the shared config).<br>4️⃣ Run `~/marais/bin/connect`. |
 
 ## Quick start – Track A (Minerva‑Assistant)
 
@@ -24,7 +24,7 @@ laptop (opencode) ──ssh tunnel──> Minerva login node ──> GPU node (v
 |---|---|---|
 | Laptop | 1. Obtain API key from the Assistant web UI (Settings → Account) |
 | Laptop | 2. Save the key to `~/.config/opencode/secrets/minerva-assistant-key` |
-| Laptop | 3. Run the repository bootstrap script (symlinks the shared config into ~/.config/opencode) | `./setup-opencode.sh` |
+| Laptop | 3. Run the repository bootstrap script (copies the shared config into ~/.config/opencode) | `./setup-opencode.sh` |
 | Laptop | 4. Open Opencode (e.g., `opencode` or launch the UI) | `opencode` |
 | Laptop | 5. Finish: exit opencode |
 
@@ -49,6 +49,10 @@ laptop (opencode) ──ssh tunnel──> Minerva login node ──> GPU node (v
 - **[User guide](docs/USER_GUIDE.md)**: first-time setup, daily use, troubleshooting.
 - **[Maintainer notes](docs/MAINTAINERS.md)**: how it fits together, adding models, pre‑release checks.
 - **[Developer guide](docs/DEVELOPERS.md)**: how to add new agents, commands, skills, and modify permissions.
+- **[Agents](@agents/README.md)**: overview of built‑in agents.
+- **[Commands](@commands/README.md)**: description of available command shortcuts.
+- **[Skills](@skills/README.md)**: catalog of skill packs.
+- **[Example workflows](@workflows/README.md)**: ready‑to‑run Nextflow pipelines and genomics orchestration examples.
 
 ## Repo layout
 
@@ -66,7 +70,7 @@ The repository provides a shared OpenCode configuration in the hidden `/.opencod
 
 ```bash
 mkdir -p ~/.config/opencode
-./setup-opencode.sh   # symlinks the shared config into ~/.config/opencode, backing up any existing files
+./setup-opencode.sh   # copies the shared config into ~/.config/opencode, backing up any existing files
 # The config expects the Assistant API key at
 # ~/.config/opencode/secrets/minerva-assistant-key.
 # Obtain the key from the Assistant web UI (Settings → Account) and
@@ -82,18 +86,27 @@ The copied `opencode.json` sets the Tier‑0 **Minerva‑Assistant** models as t
 - `auditor` – sub‑agent that audits a single script or notebook.
 - `literature` – sub‑agent that performs verified literature/database lookups.
 - `scout` – sub‑agent for fast narrow file‑search queries.
+- `nextflow-runner` – agent that wraps the Nextflow CLI for reproducible pipeline execution.
 
 **Commands**
-- `/design-review` – invoke the `design-review` skill via the `designer` agent.
 - `/lit` – literature lookup via the `literature` agent.
 - `/audit` – audit a script via the `auditor` agent.
 - `/new-analysis` – scaffold a reproducible analysis folder (uses `analyst`).
 - `/biomcp-health` – run `biomcp health --apis-only` and highlight errors/exclusions.
+- `/nextflow-launch` – launch an nfcore/Nextflow pipeline via the `nextflow-runner` agent.
 
 **Skills**
-- `design-review` – systematic critique of experimental designs.
-- `literature-verification` – retrieve and format evidence tables from public databases.
-- `rnaseq-de-workflow` – bulk RNA‑seq differential‑expression workflow conventions.
+- **Scientific skill suite** (recommended for genetics/genomics):
+  - `literature-review`
+  - `statistical-analysis`
+  - `scientific-visualization`
+  - `exploratory-data-analysis`
+  - `scanpy`
+  - `bulk-rnaseq`
+  - `deeptools`
+  - `genomic-intelligence`
+  - `biopython`
+  - `scvi-tools`
 
 **MCP (BioMCP)**
 - Provides programmatic access to PubMed, UniProt, GTEx, gnomAD, ClinVar, Reactome, STRING and many other biomedical resources.
@@ -102,5 +115,5 @@ The copied `opencode.json` sets the Tier‑0 **Minerva‑Assistant** models as t
 - Permissions are defined in `opencode.json` (edit = ask, bash = ask with a few safe commands allowed, read = allow except for `*secrets/*` and `*service.json`).
 - Lab‑wide rules live in `/.opencode/AGENTS.md` (data privacy, scientific honesty, genomics hygiene, reproducibility, delegation).
 
-These components are symlinked into `~/.config/opencode` by `setup-opencode.sh`; any changes you make in the repository are instantly reflected for all users after a restart of OpenCode.
+These components are copied into `~/.config/opencode` by `setup-opencode.sh`; any changes you make in the repository are instantly reflected for all users after a restart of OpenCode.
 

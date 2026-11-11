@@ -1,0 +1,9 @@
+name: crispr-nextflow-pipeline
+steps:
+  - id: launch
+    command: nextflow-launch
+    args:
+      pipeline: nfcore/crispr
+      profile: docker
+      params: ./config/crispr_params.json
+      resume: false

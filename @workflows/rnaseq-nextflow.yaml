@@ -1,0 +1,9 @@
+name: rnaseq-nextflow-pipeline
+steps:
+  - id: launch
+    command: nextflow-launch
+    args:
+      pipeline: nfcore/rnaseq
+      profile: docker
+      params: ./config/rnaseq_params.json
+      resume: false

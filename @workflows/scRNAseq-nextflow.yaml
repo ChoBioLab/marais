@@ -1,0 +1,9 @@
+name: scRNAseq-nextflow-pipeline
+steps:
+  - id: launch
+    command: nextflow-launch
+    args:
+      pipeline: nfcore/scrna
+      profile: docker
+      params: ./config/scRNA_params.json
+      resume: false
