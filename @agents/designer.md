@@ -1,6 +1,6 @@
 ---
 description: Experimental design and scientific reasoning advisor. Read-only, no shell.
-mode: primary
+mode: subagent
 permission:
   edit: deny
   bash: deny
