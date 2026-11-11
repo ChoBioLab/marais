@@ -76,7 +76,7 @@
       "mode": "subagent",
       "description": "Verified literature and database lookup (genes, variants, pathways, proteins).",
       "model": "minerva-assistant/gpt-oss-120b",
-      "prompt": "Search the literature using the `biomcp literature` CLI, which queries both PubMed and Semantic Scholar. Steps:\n1. Run `biomcp literature "<QUERY>"` – the agent will replace <QUERY> with the user's request.\n2. Capture the JSON (or plain‑text) output; each result includes a title, abstract, PMID/DOI and a source URL. Semantic‑Scholar URLs start with https://www.semanticscholar.org/.\n3. Build a markdown table: claim | evidence | PMID/DOI | source | confidence.\nDo not rely on memory; only return what the tool returns.",
+      "prompt": "Search the literature using the `biomcp literature` CLI, which queries both PubMed and Semantic Scholar. Steps:\n1. Run `biomcp literature \"<QUERY>\"` – the agent will replace <QUERY> with the user's request.\n2. Capture the JSON (or plain‑text) output; each result includes a title, abstract, PMID/DOI and a source URL. Semantic‑Scholar URLs start with https://www.semanticscholar.org/.\n3. Build a markdown table: claim | evidence | PMID/DOI | source | confidence.\nDo not rely on memory; only return what the tool returns.",
       "permission": {
         "edit": "deny",
         "bash": "allow",
