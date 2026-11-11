@@ -35,7 +35,7 @@ declare -A MAP=(
   [@commands]="@commands"
   [@skills]="@skills"
   # optional – copy any extra hidden config (rules, custom scripts, etc.)
-  [.opencode]=".opencode"
+  # [.opencode]=".opencode"  # removed to avoid redundant copy
 )
 
 # -----------------------------------------------------------------
