@@ -6,20 +6,9 @@ The `@skills/` directory holds all reusable skill packs that agents can load at 
 
 
 
-## Scientific skill suite (recommended for genetics/genomics)
+## Scientific skill suite (deprecated)
 
-These are curated from the K‑Dense‑AI scientific‑agent‑skills collection and provide guidance for common bio‑informatics tasks:
-
-- `literature-review`
-- `statistical-analysis`
-- `scientific-visualization`
-- `exploratory-data-analysis`
-- `scanpy`
-- `bulk-rnaseq`
-- `deeptools`
-- `genomic‑intelligence`
-- `biopython`
-- `scvi-tools`
+These scientific skill packs have been removed per system update and are no longer available.
 
 ## Matt Pocock engineering pack
 
