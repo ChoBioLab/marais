@@ -46,11 +46,11 @@ This document explains how to add or modify **agents**, **commands**, **skills**
 4. No additional code changes are required – the skill is loaded at runtime.
 
 ## 4. Changing **permissions** or **rules**
-- Permissions are defined in `/.opencode/opencode.json` under the `permission` key.
+- Permissions are defined in `/.opencode/opencode.json` (see the [OpenCode configuration guide](docs/OPENCODE_CONFIG.md)) under the `permission` key.
 - Lab‑wide rules live in `/.opencode/AGENTS.md` (and any `.opencode/rules/*.md`). Edit those files directly; they are re‑read each OpenCode session.
 
 ## 5. Updating the **MCP** configuration
-- The `mcp` section in `/.opencode/opencode.json` currently points to a local `biomcp` server.
+- The `mcp` section in `/.opencode/opencode.json` (see the [OpenCode configuration guide](docs/OPENCODE_CONFIG.md)) currently points to a local `biomcp` server.
 - To change the command or use a different MCP server, edit the `command` array, e.g.:
   ```json
   "mcp": {

@@ -1,5 +1,5 @@
 ---
-description: Lab analysis agent for genomics data processing, statistics and scripting
+description: Primary analysis agent that coordinates experimental design queries, literature evidence gathering, script generation (R/Python), automated auditing, and final report synthesis for functional genomics workflows
 mode: primary
 permission:
   edit: allow

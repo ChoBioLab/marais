@@ -31,17 +31,17 @@ marais list          # must end with "registry OK"
 - `templates/serve.lsf.in` should use the `cksum` port line. Then delete `bin/marais-port`.
 - `registry/tasks.yaml`: remove `l40s` from `gpu_pref` for `engineer` and `batch`. `qwen27-fp8` OOMs on it, and `marais list` flags it.
 - `marais/cli.py`: remove `cmd_connect` and the "run `marais connect`" hints. They conflict with `bin/connect`.
-- `marais <row>` writes `<job>.lsf` and `opencode.json` into the current directory. Consider writing the `.lsf` to a temp or state directory.
+- `marais <row>` writes `<job>.lsf` and `opencode.json` into the current directory (see the [OpenCode configuration guide](docs/OPENCODE_CONFIG.md)). Consider writing the `.lsf` to a temp or state directory.
 - `python3` on a fresh account needs PyYAML. Confirm `marais help` works there, or load a module in `bin/marais`.
 - Add `--limit-mm-per-prompt '{"image":0,"video":0}'` to `qwen27-fp8`'s `vllm_extra` if you want the memory saving.
 
 ## Adding a model to `connect`
 
 1. Add `"<served>": <unique local port>` to `MODELS` in `bin/connect`.
-2. Add a matching provider block to the user's `opencode.json`, with the same local port in `baseURL`.
+2. Add a matching provider block to the user's `opencode.json` (see the [OpenCode configuration guide](docs/OPENCODE_CONFIG.md)), with the same local port in `baseURL`.
 3. The `served` name in `registry/models.yaml` must be unique per model, because job names and ports key on it.
 4. The probe's job-name glob is `marais_<served>_*`, and the trailing `_` keeps `qwen27` from matching `qwen27-bf16`.
-5. `bin/connect` launches opencode with the default model from `opencode.json`. For a second model, users pick it with `/models` inside opencode.
+5. `bin/connect` launches opencode with the default model from `opencode.json` (see the [OpenCode configuration guide](docs/OPENCODE_CONFIG.md)). For a second model, users pick it with `/models` inside opencode.
 
 ## Security notes
 

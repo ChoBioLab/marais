@@ -1,5 +1,5 @@
 ---
-description: Experimental design and scientific reasoning advisor. Read-only, no shell.
+description: Read‑only sub‑agent that provides experimental design advice and scientific reasoning, drawing on biomcp knowledge bases without executing code or editing files
 mode: subagent
 permission:
   edit: deny

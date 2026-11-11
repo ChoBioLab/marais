@@ -1,5 +1,5 @@
 ---
-description: Verified literature and database lookup (genes, variants, pathways, proteins). Returns only retrievable, cited evidence.
+description: Sub‑agent that performs verified literature and biomedical database lookups (PubMed, Semantic Scholar, UniProt, ClinVar, etc.), returning structured tables of claims with citations, DOIs/PMIDs, and confidence scores
 mode: subagent
 steps: 15
 permission:

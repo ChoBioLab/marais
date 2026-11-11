@@ -81,12 +81,12 @@ The copied `opencode.json` sets the Tier‑0 **Minerva‑Assistant** models as t
 
 ### What the repository ships by default
 **Agents**
-- `analyst` – primary agent for data processing, statistics and scripting.
-- `designer` – primary read‑only agent for experimental design advice.
-- `auditor` – sub‑agent that audits a single script or notebook.
-- `literature` – sub‑agent that performs verified literature/database lookups.
-- `scout` – sub‑agent for fast narrow file‑search queries.
-- `nextflow-runner` – agent that wraps the Nextflow CLI for reproducible pipeline execution.
+- `analyst` – primary agent that orchestrates data processing pipelines, statistical analyses, and script generation (R/Python) for genomics projects, including design, literature evidence, and reporting.
+- `designer` – read‑only sub‑agent providing experimental design advice and scientific reasoning without editing files.
+- `auditor` – sub‑agent that audits a single script or notebook, flagging code bugs, reproducibility issues, and methodological errors (e.g., genome‑build mismatches, missing multiple‑testing correction).
+- `literature` – sub‑agent that performs verified literature and biomedical database lookups (PubMed, Semantic Scholar, UniProt, ClinVar, etc.) and returns structured citation tables.
+- `scout` – fast, read‑only sub‑agent for answering a narrow question about specific files or directories, with concise file:line citations.
+- `nextflow‑runner` – agent that wraps the `nextflow run` CLI, executing nfcore pipelines with full provenance logging for reproducible analyses.
 
 **Commands**
 - `/lit` – literature lookup via the `literature` agent.
@@ -96,13 +96,13 @@ The copied `opencode.json` sets the Tier‑0 **Minerva‑Assistant** models as t
 - `/nextflow-launch` – launch an nfcore/Nextflow pipeline via the `nextflow-runner` agent.
 
 **Skills**
-- The scientific skill suite has been deprecated; the previously listed skills (e.g., literature-review, statistical-analysis, scientific-visualization, exploratory-data-analysis, scanpy, bulk-rnaseq, deeptools, genomic-intelligence, biopython, scvi-tools) are no longer available.
+- The repository includes a suite of scientific skill packs covering literature review, statistical analysis, scientific visualization, exploratory data analysis, Scanpy workflows, bulk RNA‑seq processing, deepTools analyses, Genomic Intelligence predictions, Biopython utilities, and scvi‑tools integration. See the [Skills README](@skills/README.md) for the full list.
 
 **MCP (BioMCP)**
 - Provides programmatic access to PubMed, UniProt, GTEx, gnomAD, ClinVar, Reactome, STRING and many other biomedical resources.
 
 **Permissions & Rules**
-- Permissions are defined in `opencode.json` (edit = ask, bash = ask with a few safe commands allowed, read = allow except for `*secrets/*` and `*service.json`).
+- Permissions are defined in `opencode.json` (edit = ask, bash = ask with a few safe commands allowed, read = allow except for `*secrets/*` and `*service.json`). See the [OpenCode configuration guide](docs/OPENCODE_CONFIG.md) for details.
 - Lab‑wide rules live in `/.opencode/AGENTS.md` (data privacy, scientific honesty, genomics hygiene, reproducibility, delegation).
 
 These components are copied into `~/.config/opencode` by `setup-opencode.sh`; any changes you make in the repository are instantly reflected for all users after a restart of OpenCode.

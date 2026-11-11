@@ -1,5 +1,5 @@
 ---
-description: Fast read-only worker for ONE narrow question about named files.
+description: Fast read‑only sub‑agent for answering a single narrow question about specific files or directories, providing concise answers with file:line citations
 mode: subagent
 model: minerva-assistant/gpt-oss:20b
 steps: 8

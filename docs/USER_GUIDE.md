@@ -131,13 +131,13 @@ mkdir -p ~/.config/opencode
 # ~/.config/opencode/secrets/minerva-assistant-key (chmod 600)
 ```
 
-After this, `opencode` will automatically use the Tier‑0 **Minerva‑Assistant** models. Edit `~/.config/opencode/opencode.json` only if you need a Tier‑1 or Bedrock model.
+After this, `opencode` will automatically use the Tier‑0 **Minerva‑Assistant** models. Edit `~/.config/opencode/opencode.json` only if you need a Tier‑1 or Bedrock model — see the [OpenCode configuration guide](docs/OPENCODE_CONFIG.md) for details.
 
 ## Every session
 
 ### 1. Minerva: start the server
 
-Run this from your own folder, not the shared project folder. The command writes a `.lsf` file and an `opencode.json` into the folder you run it from. Ignore both.
+Run this from your own folder, not the shared project folder. The command writes a `.lsf` file and an `opencode.json` into the folder you run it from (see the [OpenCode configuration guide](docs/OPENCODE_CONFIG.md)). Ignore both.
 
 ```bash
 mkdir -p ~/marais-jobs && cd ~/marais-jobs
@@ -222,7 +222,7 @@ To reconnect later while the job is still running, repeat steps 3 and 4 only.
 - **Can I edit the configuration files directly?**
   Yes, but changes should be made in the repository (the source) and then re‑run `setup‑opencode.sh` for consistency across teammates.
 - **How do I add a custom permission?**
-  Edit `/.opencode/opencode.json` → `permission` and add the desired glob pattern. Restart OpenCode afterwards.
+  Edit `/.opencode/opencode.json` → `permission` (see the [OpenCode configuration guide](docs/OPENCODE_CONFIG.md)) and add the desired glob pattern. Restart OpenCode afterwards.
 
 ## Troubleshooting
 

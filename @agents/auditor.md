@@ -1,5 +1,5 @@
 ---
-description: Independent audit of ONE script or notebook for code bugs and methods errors. Give it the exact path.
+description: Sub‑agent that audits a single script or notebook, detecting code bugs, reproducibility flaws, and methodological errors such as genome‑build mismatches, missing multiple‑testing correction, and hard‑coded paths
 mode: subagent
 steps: 12
 permission:
