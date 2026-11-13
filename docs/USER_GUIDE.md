@@ -26,7 +26,7 @@
 
    ```bash
    mkdir -p ~/.config/opencode
-   ./setup-opencode.sh   # copies the shared config into ~/.config/opencode, backing up any existing files
+   ./setup-opencode.sh   # copies the shared config into ~/.config/opencode, backs up existing files, auto‑installs uv & biomcp-cli, and prompts for the Minerva API key
    # Do NOT copy the `secrets/` folder; you already placed the key above.
    ```
 
@@ -126,7 +126,7 @@ The repository ships a hidden `/.opencode/` directory containing a ready‑made 
 
 ```bash
 mkdir -p ~/.config/opencode
-./setup-opencode.sh   # copies the shared config into ~/.config/opencode, backing up any existing files
+./setup-opencode.sh   # copies the shared config into ~/.config/opencode, backs up existing files, auto‑installs uv & biomcp-cli, and prompts for the Minerva API key
 # Do NOT copy the `secrets/` folder; create your own key there:
 # ~/.config/opencode/secrets/minerva-assistant-key (chmod 600)
 ```
@@ -218,7 +218,7 @@ To reconnect later while the job is still running, repeat steps 3 and 4 only.
 
 ### FAQ (quick)
 - **Why does `setup-opencode.sh` warn about missing keys?**
-  The script checks for the Assistant API key and `biomcp`. If either is absent, later commands will fail; add the key or install `biomcp-cli` before proceeding.
+  The script now automatically installs `uv` (if missing) and `biomcp-cli` via `uv`. It then prompts you to enter the Minerva assistant API key, saving it with mode 600. After the prompt it still warns if the key or `biomcp` is missing, because they are required for downstream commands.
 - **Can I edit the configuration files directly?**
   Yes, but changes should be made in the repository (the source) and then re‑run `setup‑opencode.sh` for consistency across teammates.
 - **How do I add a custom permission?**

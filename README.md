@@ -28,7 +28,7 @@ laptop (opencode) ──ssh tunnel──> Minerva login node ──> GPU node (v
 | Laptop | 4. Open Opencode (e.g., `opencode` or launch the UI) | `opencode` |
 | Laptop | 5. Finish: exit opencode |
 
-> **Note:** The `setup-opencode.sh` script also backs up any existing OpenCode files and warns if the Assistant API key or `biomcp` is missing.
+> **Note:** The `setup-opencode.sh` script backs up any existing OpenCode files, automatically installs `uv` (if missing) and `biomcp-cli` via `uv`, and then prompts you to enter your Minerva assistant API key (saving it with mode 600). It still warns if the key or `biomcp` is missing after the prompt.
 > **Note:** The Minerva‑Assistant API is reachable only from within the MSSM VPN (or on‑campus). Ensure you are connected to the VPN before opening Opencode.
 
 ## Quick start – Track B (Self‑hosted VLLM)
